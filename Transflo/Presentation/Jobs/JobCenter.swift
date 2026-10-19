@@ -1,0 +1,173 @@
+import Foundation
+import Observation
+import TransfloDomain
+
+/// Runs wheel jobs with bounded concurrency, tracks their progress, drives the HUD and posts
+/// a notification when a long job finishes.
+@Observable
+final class JobCenter: JobScheduling {
+    private(set) var jobs: [JobRecord] = []
+    /// Finished jobs kept for display; older ones are dropped.
+    static let historyLimit = 50
+
+    @ObservationIgnored private let runOption: RunWheelOptionUseCase
+    @ObservationIgnored private let hud: any JobHUDPresenting
+    @ObservationIgnored private let notifier: any CompletionNotifying
+    @ObservationIgnored private let revealer: any FileRevealing
+    @ObservationIgnored private let localizer: Localizer
+    @ObservationIgnored private let announcer: any AccessibilityAnnouncing
+    @ObservationIgnored private let maximumConcurrentJobs: Int
+    @ObservationIgnored private let notificationThreshold: Duration
+    @ObservationIgnored private let preparation: PrepareWheelJobUseCase?
+    @ObservationIgnored private let now: () -> ContinuousClock.Instant
+    @ObservationIgnored private var tasks: [UUID: Task<Void, Never>] = [:]
+
+    init(
+        runOption: RunWheelOptionUseCase,
+        hud: any JobHUDPresenting,
+        notifier: any CompletionNotifying,
+        revealer: any FileRevealing,
+        localizer: Localizer,
+        announcer: any AccessibilityAnnouncing = SystemAccessibilityAnnouncer(),
+        maximumConcurrentJobs: Int = min(2, max(1, ProcessInfo.processInfo.activeProcessorCount / 2)),
+        notificationThreshold: Duration = .seconds(3),
+        now: @escaping () -> ContinuousClock.Instant = { ContinuousClock.now },
+        preparation: PrepareWheelJobUseCase? = nil
+    ) {
+        self.runOption = runOption
+        self.hud = hud
+        self.notifier = notifier
+        self.revealer = revealer
+        self.localizer = localizer
+        self.announcer = announcer
+        self.maximumConcurrentJobs = max(1, maximumConcurrentJobs)
+        self.notificationThreshold = notificationThreshold
+        self.now = now
+        self.preparation = preparation
+    }
+
+    func schedule(_ option: WheelOption, items: [URL], near point: WheelPoint) {
+        let prepared = preparation?.execute(option, items: items)
+        let record = JobRecord(id: UUID(), option: prepared?.option ?? option, items: items, origin: point,
+                               state: .queued, originalWithinTarget: prepared?.originalWithinTarget ?? false)
+        jobs.append(record)
+        hud.present(record.id)
+        startQueuedJobs()
+    }
+
+    func job(_ id: UUID) -> JobRecord? {
+        jobs.first { $0.id == id }
+    }
+
+    /// Cancels a queued or running job.
+    func cancel(_ id: UUID) {
+        if job(id)?.state == .queued {
+            finish(id, with: .failure(.cancelled), startedAt: now())
+        } else {
+            tasks[id]?.cancel()
+        }
+    }
+
+    /// Cancels every queued or running job.
+    func cancelAll() {
+        jobs.filter { !$0.state.isFinished }.forEach { cancel($0.id) }
+    }
+
+    /// Drops finished jobs from the list; running and queued ones stay.
+    func clearFinished() {
+        jobs.removeAll { $0.state.isFinished }
+    }
+
+    /// Reveals a finished job's outputs in Finder.
+    func reveal(_ id: UUID) {
+        guard let record = job(id), !record.completedOutputs.isEmpty else { return }
+        revealer.reveal(record.completedOutputs)
+    }
+
+    /// Waits for every started job; used by tests.
+    func waitUntilIdle() async {
+        while let task = tasks.values.first {
+            await task.value
+        }
+    }
+
+    private var runningCount: Int {
+        jobs.filter { if case .running = $0.state { true } else { false } }.count
+    }
+
+    private func startQueuedJobs() {
+        while runningCount < maximumConcurrentJobs, let next = jobs.first(where: { $0.state == .queued }) {
+            start(next)
+        }
+    }
+
+    private func start(_ record: JobRecord) {
+        update(record.id) { $0.state = .running(fraction: 0) }
+        let startedAt = now()
+        let id = record.id
+        // Strong captures are deliberate: the center lives as long as the app, and `finish`
+        // removes the task, so no cycle outlives the job.
+        tasks[id] = Task { [runOption] in
+            let result: Result<[URL], JobError>
+            do throws(JobError) {
+                result = .success(try await runOption.execute(record.option, on: record.items) { fraction in
+                    Task { @MainActor in self.reportProgress(id, fraction) }
+                })
+            } catch {
+                result = .failure(error)
+            }
+            finish(id, with: result, startedAt: startedAt)
+        }
+    }
+
+    private func reportProgress(_ id: UUID, _ fraction: Double) {
+        update(id) { record in
+            guard case .running = record.state else { return }
+            record.state = .running(fraction: fraction)
+        }
+    }
+
+    private func finish(_ id: UUID, with result: Result<[URL], JobError>, startedAt: ContinuousClock.Instant) {
+        tasks[id] = nil
+        update(id) { record in
+            switch result {
+            case .success(let outputs): record.state = .succeeded(outputs: outputs)
+            case .failure(let error): record.state = .failed(error)
+            }
+        }
+        hud.jobFinished(id)
+        if let record = job(id) {
+            JobPresentation.announcement(for: record, localizer: localizer).map(announcer.announce)
+            if now() - startedAt >= notificationThreshold { notifyCompletion(of: record) }
+        }
+        pruneHistory()
+        startQueuedJobs()
+    }
+
+    private func notifyCompletion(of record: JobRecord) {
+        let name = record.items.first?.lastPathComponent ?? ""
+        switch record.state {
+        case .succeeded(let outputs):
+            let output = outputs.first?.lastPathComponent ?? name
+            let body = localizer.string(.notificationDone, arguments: [output])
+            notifier.notify(title: localizer.string(.appName), body: body, revealing: outputs)
+        case .failed(.cancelled), .queued, .running:
+            break
+        case .failed:
+            let body = localizer.string(.notificationFailed, arguments: [name])
+            notifier.notify(title: localizer.string(.appName), body: body, revealing: [])
+        }
+    }
+
+    private func pruneHistory() {
+        let finished = jobs.filter(\.state.isFinished)
+        guard finished.count > Self.historyLimit else { return }
+        let dropped = Set(finished.prefix(finished.count - Self.historyLimit).map(\.id))
+        jobs.removeAll { dropped.contains($0.id) }
+    }
+
+    private func update(_ id: UUID, _ change: (inout JobRecord) -> Void) {
+        guard let index = jobs.firstIndex(where: { $0.id == id }) else { return }
+        change(&jobs[index])
+    }
+}

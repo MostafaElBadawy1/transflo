@@ -1,0 +1,22 @@
+# Transflo @VERSION@
+
+Free, open-source file conversion at your cursor. Drag a file, tap a key, drop it on the wheel.
+
+## Install
+- **Homebrew:** `brew install --cask ali-fayed/transflo/transflo`
+- **DMG:** download `Transflo-@VERSION@-arm64.dmg` below, open it and drag Transflo to Applications.
+@FIRST_LAUNCH@
+## What's inside
+- **⇧ Convert:** 262 conversion paths across images, audio, video, documents, PDF, slides, spreadsheets, subtitles and archives.
+- **⌘ Tools:** 26 tools, from compress, crop and annotate to trim, bleep, merge, page editing, metadata and batch rename.
+- **⌃ Actions:** AirDrop, Float shelf, Copy, Move, Copy Path and Terminal.
+- **Keyboard:** ⌥⌘Return on a Finder selection, plus Open in Transflo in the right-click menu.
+- **Customization:** saved accent colors, wheel sizes, appearance, Liquid Glass and reduced motion. Settings pages adapt to their content.
+- **Editors:** crop ratios and pixel dimensions, plus Add Background with canvas styles, gradients, padding, corners and shadows.
+- **Output:** compression presets or a target size, and output filename styles.
+- **Getting Started:** a five-page tour, replayable from the menu bar, plus an on-demand update check.
+- **Everything else:** a Jobs window, English and Arabic, light and dark, and VoiceOver support.
+
+Requires macOS 14 or later on Apple silicon. File processing runs on your Mac. AirDrop shares files on request; Check for Updates contacts GitHub only when selected.
+
+SHA-256 (`Transflo-@VERSION@-arm64.dmg`): `@SHA256@`

@@ -1,0 +1,136 @@
+name: Transflo
+options:
+  bundleIdPrefix: com.transflo
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  groupSortPosition: top
+  postGenCommand: python3 scripts/sync-project-folders.py
+configs:
+  Debug: debug
+  Release: release
+  AppStore: release
+configFiles:
+  Debug: Configs/Debug.xcconfig
+  Release: Configs/Release.xcconfig
+  AppStore: Configs/AppStore.xcconfig
+packages:
+  TransfloDomain:
+    path: Packages/TransfloDomain
+  TransfloData:
+    path: Packages/TransfloData
+  TransfloSystem:
+    path: Packages/TransfloSystem
+targets:
+  Transflo:
+    type: application
+    platform: macOS
+    sources:
+      - path: Transflo
+        excludes:
+          - Resources/Info.plist
+          - Resources/Transflo.entitlements
+          - Resources/TransfloAppStore.entitlements
+          - Resources/HelperSandbox.entitlements
+    configFiles:
+      Debug: Configs/Transflo.xcconfig
+      Release: Configs/Transflo.xcconfig
+      AppStore: Configs/TransfloAppStore.xcconfig
+    dependencies:
+      - package: TransfloDomain
+        product: TransfloDomain
+      - package: TransfloData
+      - package: TransfloSystem
+    preBuildScripts:
+      - name: SwiftLint
+        basedOnDependencyAnalysis: false
+        script: |
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          if command -v swiftlint >/dev/null; then
+            swiftlint lint --strict --quiet --config "$SRCROOT/.swiftlint.yml" "$SRCROOT"
+          else
+            echo "warning: SwiftLint is not installed (brew install swiftlint)"
+          fi
+    postBuildScripts:
+      - name: Unsign resource bundles
+        basedOnDependencyAnalysis: false
+        script: |
+          # Swift package resource bundles hold only data (catalog.json, tools.json). Xcode signs them
+          # with the build identity, and App Store export doesn't re-sign bundles in Resources, so the
+          # store rejects them (ITMS-90284). Without their own signature, the app's signature seals them.
+          for BUNDLE in "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"/*.bundle; do
+            [ -d "$BUNDLE/Contents/_CodeSignature" ] || continue
+            if find "$BUNDLE" -type f -perm -u+x | grep -q .; then
+              echo "error: $(basename "$BUNDLE") contains executable code; it can't be shipped unsigned"
+              exit 1
+            fi
+            rm -rf "$BUNDLE/Contents/_CodeSignature"
+          done
+      - name: Bundle ffmpeg and ffprobe
+        basedOnDependencyAnalysis: false
+        script: |
+          HELPERS="$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Helpers"
+          for TOOL in ffmpeg ffprobe; do
+            SOURCE="$SRCROOT/Vendor/ffmpeg/bin/$TOOL"
+            if [ -x "$SOURCE" ]; then
+              mkdir -p "$HELPERS"
+              cp -f "$SOURCE" "$HELPERS/$TOOL"
+              # The App Store edition's helpers inherit the app's sandbox.
+              codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY:--}" --options runtime --timestamp=none \
+                ${HELPER_ENTITLEMENTS:+--entitlements "$HELPER_ENTITLEMENTS"} "$HELPERS/$TOOL"
+            else
+              echo "warning: Vendor/ffmpeg/bin/$TOOL not built (scripts/build-ffmpeg.sh); formats and tools needing it are hidden"
+            fi
+          done
+  TransfloTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [TransfloTests]
+    configFiles:
+      Debug: Configs/TransfloTests.xcconfig
+      Release: Configs/TransfloTests.xcconfig
+      AppStore: Configs/TransfloTests.xcconfig
+    dependencies:
+      - target: Transflo
+      - package: TransfloDomain
+        product: TransfloDomainTestSupport
+  TransfloUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - TransfloUITests
+      - Transflo/App/LaunchArgument.swift
+      - Transflo/Presentation/Navigation/WindowIdentifier.swift
+    configFiles:
+      Debug: Configs/TransfloUITests.xcconfig
+      Release: Configs/TransfloUITests.xcconfig
+      AppStore: Configs/TransfloUITests.xcconfig
+    dependencies:
+      - target: Transflo
+schemes:
+  Transflo:
+    build:
+      targets:
+        Transflo: all
+    test:
+      gatherCoverageData: false
+      testPlans:
+        - path: TestPlans/Fast.xctestplan
+          defaultPlan: true
+        - path: TestPlans/Extended.xctestplan
+        - path: TestPlans/Marketing.xctestplan
+    run:
+      config: Debug
+    archive:
+      config: Release
+  Transflo App Store:
+    build:
+      targets:
+        Transflo: all
+    run:
+      config: AppStore
+    profile:
+      config: AppStore
+    archive:
+      config: AppStore

@@ -1,0 +1,36 @@
+{
+  "configurations": [
+    {
+      "id": "7AB5C619-014D-4369-A0DB-D30C0366F904",
+      "name": "Default",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "codeCoverage": false,
+    "environmentVariableEntries": [
+      {
+        "key": "TRANSFLO_SCREENSHOTS",
+        "value": "1"
+      }
+    ]
+  },
+  "testTargets": [
+    {
+      "parallelizable": false,
+      "selectedTests": [
+        "MarketingScreenshotUITests/testEditors()",
+        "MarketingScreenshotUITests/testOnboardingPages()",
+        "MarketingScreenshotUITests/testSettingsAndWelcome()",
+        "MarketingScreenshotUITests/testShelfAndJobs()",
+        "MarketingScreenshotUITests/testWheels()"
+      ],
+      "target": {
+        "containerPath": "container:Transflo.xcodeproj",
+        "identifier": "7948EAD4EFF3CCA5334B5936",
+        "name": "TransfloUITests"
+      }
+    }
+  ],
+  "version": 1
+}
