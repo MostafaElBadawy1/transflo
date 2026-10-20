@@ -25,6 +25,12 @@ enum AppAnimations {
     static var wheelAppear: Animation? { reduced ? nil : .spring(response: 0.26, dampingFraction: 0.78) }
     /// Wedge highlight following the pointer; fast enough to feel attached to it.
     static var wheelHighlight: Animation? { reduced ? nil : .snappy(duration: 0.1) }
+    /// The revolver cylinder turning the aimed chamber up to the firing position. Instant with Reduce Motion.
+    static var cylinderTurn: Animation? { reduced ? nil : .spring(response: 0.28, dampingFraction: 0.72) }
+    /// The cylinder's recoil on a hit; off with Reduce Motion (the flash still shows).
+    static var cylinderRecoil: Bool { !reduced }
+    /// The muzzle flash blooming open on a hit; it simply appears with Reduce Motion.
+    static var muzzleFlash: Animation? { reduced ? nil : .easeOut(duration: 0.16) }
     /// The wheel folding into the result disc after a drop.
     static var resultEnter: Animation? { reduced ? nil : .spring(response: 0.42, dampingFraction: 0.78) }
     /// The check or cross drawing itself in when a job ends.

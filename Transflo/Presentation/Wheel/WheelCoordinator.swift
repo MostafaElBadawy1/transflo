@@ -3,6 +3,9 @@ import TransfloDomain
 
 /// Drives the wheel from drag events (and, in keyboard mode, from keys): opens, switches and closes
 /// it, and schedules the chosen option.
+///
+/// In Russian Roulette mode a drop also pulls the trigger. The job is scheduled at once as usual;
+/// only the wheel stays up for `shotHold` so the outcome can be seen.
 final class WheelCoordinator: KeyboardWheelOpening {
     /// Keyboard mode opens the first of these wheels that has options for the selection.
     static let keyboardWheelOrder: [WheelKind] = [.convert, .tools, .actions]
@@ -16,12 +19,15 @@ final class WheelCoordinator: KeyboardWheelOpening {
     private let summaryProvider: (any DragSummaryProviding)?
     private var summary: DragSummary?
     private let dismissDelay: Duration
+    private let roulette: (any RouletteFiring)?
+    private let shotHold: Duration
 
     private var items: [URL] = []
     private var openPoint: WheelPoint?
     private var keepsOpenAfterDrag = false
     private var pendingDismiss: Task<Void, Never>?
     private var listener: Task<Void, Never>?
+    private var shotLinger: Task<Void, Never>?
 
     /// - Parameter dismissDelay: Grace period after mouse-up before closing, because the drop can
     ///   arrive just after the monitor sees the button release.
@@ -33,7 +39,9 @@ final class WheelCoordinator: KeyboardWheelOpening {
         editor: any ToolEditing,
         preparer: any ActionPreparing,
         dismissDelay: Duration = .milliseconds(300),
-        summaryProvider: (any DragSummaryProviding)? = nil
+        summaryProvider: (any DragSummaryProviding)? = nil,
+        roulette: (any RouletteFiring)? = nil,
+        shotHold: Duration = .milliseconds(350)
     ) {
         self.resolveOptions = resolveOptions
         self.presenter = presenter
@@ -43,6 +51,8 @@ final class WheelCoordinator: KeyboardWheelOpening {
         self.preparer = preparer
         self.dismissDelay = dismissDelay
         self.summaryProvider = summaryProvider
+        self.roulette = roulette
+        self.shotHold = shotHold
         presenter.onHover = { [weak viewModel] offset in viewModel?.updatePointer(offset) ?? false }
         presenter.onDrop = { [weak self] offset in self?.handleDrop(at: offset) ?? false }
         presenter.onPromisedDrop = { [weak self] offset, deliver in
@@ -63,7 +73,7 @@ final class WheelCoordinator: KeyboardWheelOpening {
         }) else { return false }
         self.items = items
         summary = summaryProvider?.summary(for: items)
-        viewModel.show(kind, options: resolveOptions.execute(wheel: kind, items: items), summary: summary)
+        show(kind, options: resolveOptions.execute(wheel: kind, items: items))
         presenter.showInteractive(at: point)
         openPoint = point
         return true
@@ -77,7 +87,7 @@ final class WheelCoordinator: KeyboardWheelOpening {
         case .confirm:
             guard let option = viewModel.activateHighlighted() else { return }
             let items = self.items
-            close()
+            fireAndClose()
             dispatch(option, items: items, near: point)
         case .cancel:
             close()
@@ -117,6 +127,11 @@ final class WheelCoordinator: KeyboardWheelOpening {
             pendingDismiss?.cancel()
             return true
         }
+        // On a cylinder, pressing any other chamber only aims it; the firing hole is the button.
+        let state = viewModel.state
+        if state.cylinder != nil, state.slotIndex(at: offset) == nil, state.geometry.wedgeIndex(at: offset) != nil {
+            return true
+        }
         return handleDrop(at: offset)
     }
 
@@ -134,7 +149,7 @@ final class WheelCoordinator: KeyboardWheelOpening {
             return false
         }
         let items = self.items
-        close()
+        fireAndClose()
         dispatch(option, items: items, near: point)
         return true
     }
@@ -160,7 +175,7 @@ final class WheelCoordinator: KeyboardWheelOpening {
             close()
             return false
         }
-        close()
+        fireAndClose()
         deliver { [weak self] items in
             guard let self, !items.isEmpty,
                   resolveOptions.execute(wheel: kind, items: items).contains(where: { $0.kind == option.kind }) else {
@@ -191,7 +206,7 @@ final class WheelCoordinator: KeyboardWheelOpening {
         let options = resolveOptions.execute(wheel: kind, items: items)
         guard !options.isEmpty else { return }
         pendingDismiss?.cancel()
-        viewModel.show(kind, options: options, summary: summary)
+        show(kind, options: options)
         if openPoint == nil {
             presenter.show(at: point)
             openPoint = point
@@ -212,9 +227,41 @@ final class WheelCoordinator: KeyboardWheelOpening {
         keepsOpenAfterDrag = false
         pendingDismiss?.cancel()
         pendingDismiss = nil
+        endShot()
         guard openPoint != nil else { return }
         presenter.hide()
         viewModel.reset()
         openPoint = nil
+    }
+
+    /// Shows `options`, ending a shot still on screen. A cylinder loads its sounds before it can turn.
+    private func show(_ kind: WheelKind, options: [WheelOption]) {
+        endShot()
+        viewModel.show(kind, options: options, summary: summary)
+        if viewModel.state.cylinder != nil { roulette?.prepare() }
+    }
+
+    /// Closes the wheel, first pulling the trigger if it is a cylinder: the outcome plays while the
+    /// wheel lingers for `shotHold`, ignoring input, and a new drag ends the linger at once.
+    private func fireAndClose() {
+        guard let roulette, viewModel.state.cylinder != nil, openPoint != nil else { return close() }
+        viewModel.fire(roulette.fire(chamberCount: viewModel.state.slots.count))
+        keepsOpenAfterDrag = false
+        pendingDismiss?.cancel()
+        pendingDismiss = nil
+        openPoint = nil
+        shotLinger = Task { [weak self, shotHold] in
+            try? await Task.sleep(for: shotHold)
+            guard !Task.isCancelled else { return }
+            self?.endShot()
+        }
+    }
+
+    private func endShot() {
+        guard let shotLinger else { return }
+        shotLinger.cancel()
+        self.shotLinger = nil
+        presenter.hide()
+        viewModel.reset()
     }
 }

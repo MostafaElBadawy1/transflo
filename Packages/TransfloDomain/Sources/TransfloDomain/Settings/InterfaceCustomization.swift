@@ -19,6 +19,11 @@ public struct InterfaceCustomization: Sendable, Equatable, Codable {
     public var reduceMotion: Bool
     public var wheelHaptics: Bool
     public var wheelSound: Bool
+    /// Russian Roulette mode: the wheel is drawn as a revolver cylinder, with its own sounds.
+    /// Purely cosmetic; options and jobs are unchanged.
+    public var rouletteMode: Bool
+    /// Silences the roulette sounds only; trackpad feedback still follows `wheelHaptics`.
+    public var rouletteSoundsMuted: Bool
 
     public init(
         accentHex: String? = nil,
@@ -26,7 +31,9 @@ public struct InterfaceCustomization: Sendable, Equatable, Codable {
         solidSurfaces: Bool = false,
         reduceMotion: Bool = false,
         wheelHaptics: Bool = true,
-        wheelSound: Bool = true
+        wheelSound: Bool = true,
+        rouletteMode: Bool = false,
+        rouletteSoundsMuted: Bool = false
     ) {
         self.accentHex = Self.validatedHex(accentHex)
         self.wheelSize = wheelSize
@@ -34,10 +41,13 @@ public struct InterfaceCustomization: Sendable, Equatable, Codable {
         self.reduceMotion = reduceMotion
         self.wheelHaptics = wheelHaptics
         self.wheelSound = wheelSound
+        self.rouletteMode = rouletteMode
+        self.rouletteSoundsMuted = rouletteSoundsMuted
     }
 
     private enum CodingKeys: String, CodingKey {
         case accentHex, wheelSize, solidSurfaces, reduceMotion, wheelHaptics, wheelSound
+        case rouletteMode, rouletteSoundsMuted
     }
 
     /// Older preference files lack the feedback flag; preserve their colors and sizing.
@@ -49,7 +59,9 @@ public struct InterfaceCustomization: Sendable, Equatable, Codable {
             solidSurfaces: try values.decodeIfPresent(Bool.self, forKey: .solidSurfaces) ?? false,
             reduceMotion: try values.decodeIfPresent(Bool.self, forKey: .reduceMotion) ?? false,
             wheelHaptics: try values.decodeIfPresent(Bool.self, forKey: .wheelHaptics) ?? true,
-            wheelSound: try values.decodeIfPresent(Bool.self, forKey: .wheelSound) ?? true
+            wheelSound: try values.decodeIfPresent(Bool.self, forKey: .wheelSound) ?? true,
+            rouletteMode: try values.decodeIfPresent(Bool.self, forKey: .rouletteMode) ?? false,
+            rouletteSoundsMuted: try values.decodeIfPresent(Bool.self, forKey: .rouletteSoundsMuted) ?? false
         )
     }
 
@@ -65,6 +77,7 @@ public struct InterfaceCustomization: Sendable, Equatable, Codable {
     /// Validate decoded and edited preferences at the storage/application boundary.
     public var validated: Self {
         Self(accentHex: accentHex, wheelSize: wheelSize, solidSurfaces: solidSurfaces, reduceMotion: reduceMotion,
-             wheelHaptics: wheelHaptics, wheelSound: wheelSound)
+             wheelHaptics: wheelHaptics, wheelSound: wheelSound, rouletteMode: rouletteMode,
+             rouletteSoundsMuted: rouletteSoundsMuted)
     }
 }

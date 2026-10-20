@@ -6,6 +6,12 @@ All notable changes to Transflo are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Russian Roulette mode** (Settings › General): the wheel becomes a revolver cylinder. Rest on a
+  chamber to turn it up to the firing position, then drop on that chamber; one chamber in each
+  cylinder is loaded. Cosmetic only: files convert exactly as before. Has its own mute, follows
+  Reduce Motion, and the chamber count follows each wheel's options.
+
 ## [1.0.1] - 2026-10-20
 
 ### Added

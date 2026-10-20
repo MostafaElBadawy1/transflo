@@ -7,6 +7,9 @@ enum AppTextColor {
     case accent
     case danger
     case onAccent
+    /// Labels in a revolver chamber's dark bore, and stamped on the brass cartridge.
+    case chamber
+    case cartridge
 
     var color: Color {
         switch self {
@@ -15,6 +18,8 @@ enum AppTextColor {
         case .accent: AppColors.accent
         case .danger: AppColors.danger
         case .onAccent: AppColors.accentContrast
+        case .chamber: AppColors.chamberLabel
+        case .cartridge: AppColors.cartridgeLabel
         }
     }
 }

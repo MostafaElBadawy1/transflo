@@ -111,6 +111,7 @@ struct SettingsView: View {
                         set: { value in customization.update { $0.wheelSound = value } }))
                 }
             }
+            RouletteSettingsSection(viewModel: customization)
             OutputPreferencesView(model: tools)
             CustomizationSettingsView(settings: viewModel, viewModel: customization)
             KeySettingsSection(viewModel: keys)

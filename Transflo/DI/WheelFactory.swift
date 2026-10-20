@@ -11,7 +11,9 @@ struct WheelFactory {
         WheelViewModel(bindings: bindings, layout: localizer, sizingProvider: {
             WheelSizing.standard.scaled(by: InterfaceStyle.shared.preferences.wheelSize.scale)
         }, byteFormatter: FileByteSizeFormatter(), localizer: localizer,
-                       onSelectionChange: { WheelHaptics.shared.selectionChanged() })
+                       onSelectionChange: { WheelHaptics.shared.selectionChanged() },
+                       roulette: WheelRoulette(isEnabled: { InterfaceStyle.shared.preferences.rouletteMode },
+                                               onTurn: { RouletteFeedback.shared.turned(steps: $0) }))
     }
 
     func makeCoordinator(
@@ -27,7 +29,8 @@ struct WheelFactory {
             scheduler: scheduler,
             editor: editor,
             preparer: preparer,
-            summaryProvider: FileDragSummaryProvider()
+            summaryProvider: FileDragSummaryProvider(),
+            roulette: RouletteFeedback.shared
         )
     }
 }

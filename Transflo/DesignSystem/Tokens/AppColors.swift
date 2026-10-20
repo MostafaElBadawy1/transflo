@@ -62,4 +62,17 @@ enum AppColors {
     /// The recessed well in the middle of the wheel, and the pill that names the option.
     static let hubWell = Color(.hubWell)
     static let hubPill = Color(.hubPill)
+
+    /// Russian Roulette's revolver cylinder: brushed steel (base, lit and shaded), the dark chamber
+    /// bores with their engraved labels, the brass cartridge and its stamp, and the muzzle flash.
+    static let cylinderSteel = Color(.cylinderSteel)
+    static let cylinderSteelLight = Color(.cylinderSteelLight)
+    static let cylinderSteelDark = Color(.cylinderSteelDark)
+    static let chamberBore = Color(.chamberBore)
+    static let chamberLabel = Color(.chamberLabel)
+    static let brass = Color(.brass)
+    static let brassDark = Color(.brassDark)
+    static let cartridgeLabel = Color(.cartridgeLabel)
+    static let muzzleFlash = Color(.muzzleFlash)
+    static let muzzleFlashEdge = Color(.muzzleFlashEdge)
 }

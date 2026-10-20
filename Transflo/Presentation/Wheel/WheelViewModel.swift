@@ -7,21 +7,9 @@ import TransfloDomain
 ///
 /// Up to 12 options fit on one ring, which grows with the option count (`WheelSizing`). Longer
 /// lists show 11 per page plus a More wedge; resting the pointer on More for `dwellDelay` turns
-/// to the next page (wrapping around).
+/// to the next page (wrapping around). In Russian Roulette mode the slots are a revolver cylinder.
 @Observable
 final class WheelViewModel {
-    /// Everything the wheel renders.
-    struct State: Equatable {
-        var kind: WheelKind?
-        var options: [WheelOption] = []
-        var summary: DragSummary?
-        var page = 0
-        var group: WheelToolGroup?
-        var slots: [WheelSlot] = []
-        var highlightedIndex: Int?
-        var geometry = WheelGeometry(wedgeCount: 0, innerRadius: 0, outerRadius: 0, isRightToLeft: false)
-    }
-
     static let wedgesPerRing = 12
 
     private(set) var state = State()
@@ -37,6 +25,8 @@ final class WheelViewModel {
     @ObservationIgnored private var hoverReadyAt: ContinuousClock.Instant?
     @ObservationIgnored private let onSelectionChange: () -> Void
     @ObservationIgnored private var dwellTask: Task<Void, Never>?
+    @ObservationIgnored private let roulette: WheelRoulette
+    @ObservationIgnored private let aimTimer = CylinderAimTimer()
 
     init(
         bindings: WheelKeyBindings,
@@ -47,9 +37,11 @@ final class WheelViewModel {
         sizingProvider: (() -> WheelSizing)? = nil,
         byteFormatter: (any ByteSizeFormatting)? = nil,
         localizer: Localizer? = nil,
-        onSelectionChange: @escaping () -> Void = {}
+        onSelectionChange: @escaping () -> Void = {},
+        roulette: WheelRoulette = .off
     ) {
         self.onSelectionChange = onSelectionChange
+        self.roulette = roulette
         self.byteFormatter = byteFormatter
         self.localizer = localizer
         self.bindings = bindings
@@ -102,6 +94,7 @@ final class WheelViewModel {
     /// - Returns: Whether the pointer is over a droppable option.
     @discardableResult
     func updatePointer(_ offset: WheelPoint?) -> Bool {
+        if state.cylinder != nil { return pointCylinder(at: offset, dwells: true) }
         let index = offset.flatMap(state.geometry.wedgeIndex(at:))
         if index != state.highlightedIndex {
             state.highlightedIndex = index
@@ -123,7 +116,7 @@ final class WheelViewModel {
     /// Opens a group, returns to the root, or turns a page without dispatching a file operation.
     @discardableResult
     func navigate(at offset: WheelPoint) -> Bool {
-        guard let index = state.geometry.wedgeIndex(at: offset) else { return false }
+        guard let index = state.slotIndex(at: offset) else { return false }
         return navigate(state.slots[index])
     }
 
@@ -153,13 +146,13 @@ final class WheelViewModel {
 
     /// Whether the pointer is on the paging control.
     func isMore(at offset: WheelPoint) -> Bool {
-        guard let index = state.geometry.wedgeIndex(at: offset) else { return false }
+        guard let index = state.slotIndex(at: offset) else { return false }
         return state.slots[index] == .more
     }
 
     /// The option under `offset`, or `nil` over the hub, More, or outside the ring.
     func option(at offset: WheelPoint) -> WheelOption? {
-        guard let index = state.geometry.wedgeIndex(at: offset), case .option(let option) = state.slots[index] else {
+        guard let index = state.slotIndex(at: offset), case .option(let option) = state.slots[index] else {
             return nil
         }
         return option
@@ -173,6 +166,7 @@ final class WheelViewModel {
     /// Keyboard mode: highlights the wedge under the pointer. Over the hub or outside the ring
     /// the arrow-key highlight stays, and More never auto-turns.
     func highlightWedge(at offset: WheelPoint) {
+        if state.cylinder != nil { _ = pointCylinder(at: offset, dwells: false); return }
         guard let index = state.geometry.wedgeIndex(at: offset) else { return }
         dwellTask?.cancel()
         if index != state.highlightedIndex {
@@ -193,6 +187,9 @@ final class WheelViewModel {
         let count = state.slots.count
         dwellTask?.cancel()
         let step = clockwise == state.geometry.isRightToLeft ? -1 : 1
+        if state.cylinder != nil, let current = state.highlightedIndex {
+            return aim(at: (current + step + count) % count, dwells: false)
+        }
         guard let current = state.highlightedIndex else {
             // The first press lands on the top wedge going clockwise, or on its neighbor going back.
             state.highlightedIndex = clockwise ? 0 : (step + count) % count
@@ -226,6 +223,11 @@ final class WheelViewModel {
         dwellTask?.cancel()
         guard pageCount > 1 else { return }
         layOut(page: (state.page + 1) % pageCount)
+    }
+
+    /// Shows the trigger's outcome. The cylinder ignores the pointer from then until it closes.
+    func fire(_ outcome: RouletteOutcome) {
+        state.shot = outcome
     }
 
     /// Clears the wheel after it closes.
@@ -266,6 +268,27 @@ final class WheelViewModel {
             outerRadius: sizing.outerRadius(forWedgeCount: state.slots.count),
             isRightToLeft: layout.isRightToLeft
         )
+        aimTimer.cancel()
+        state.loadCylinder(isEnabled: roulette.isEnabled())
+    }
+
+    /// Aims at the chamber under `offset` once the pointer rests. Returns whether a drop would fire.
+    private func pointCylinder(at offset: WheelPoint?, dwells: Bool) -> Bool {
+        guard case .chamber(let index) = state.cylinderTarget(at: offset) else {
+            aimTimer.cancel()
+            return state.cylinderTarget(at: offset) == .firingHole && state.canFire
+        }
+        aimTimer.schedule(index, after: roulette.aimDelay) { [weak self] in self?.aim(at: $0, dwells: dwells) }
+        return false
+    }
+
+    /// `dwells`: More and groups in the firing position open after a dwell, as on the plain wheel.
+    private func aim(at index: Int, dwells: Bool) {
+        let steps = state.turnCylinder(to: index)
+        guard steps != 0 else { return }
+        dwellTask?.cancel()
+        roulette.onTurn(steps)
+        if dwells, isNavigation(state.slots[index]) { startDwell() }
     }
 
     private var navigationSlots: [WheelSlot] {

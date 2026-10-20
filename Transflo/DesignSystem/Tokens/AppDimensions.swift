@@ -57,6 +57,26 @@ enum AppDimensions {
         static let hubGlyphSize: CGFloat = 22
     }
 
+    /// Russian Roulette's revolver cylinder, laid out from `CylinderAim`.
+    enum Cylinder {
+        /// The beveled rim of the disc and of each chamber.
+        static let rimBevel: CGFloat = 3
+        static let chamberBevel: CGFloat = 2.5
+        /// The brass cartridge's share of its chamber, and the primer's share of the cartridge.
+        static let cartridgeFill: CGFloat = 0.9
+        static let primerFill: CGFloat = 0.36
+        /// Label size as a share of the chamber's radius, within the wheel's label range.
+        static let labelPerRadius: CGFloat = 0.36
+        /// The fixed notch marking the firing position at 12 o'clock.
+        static let firingNotchWidth: CGFloat = 14
+        static let firingNotchHeight: CGFloat = 8
+        /// The muzzle flash's size relative to a chamber, and the recoil kick.
+        static let flashScale: CGFloat = 2.6
+        static let recoilDistance: CGFloat = 7
+        /// Concentric machining marks across the steel.
+        static let machiningRings = 5
+    }
+
     /// Settings › Wheel checklist.
     enum Checkbox {
         static let size: CGFloat = 16

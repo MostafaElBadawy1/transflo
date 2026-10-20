@@ -7872,6 +7872,74 @@
         }
       }
     },
+    "settings.rouletteMode" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "وضع الروليت الروسية"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Russian Roulette mode"
+          }
+        }
+      }
+    },
+    "settings.rouletteModeHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يحوّل العجلة إلى أسطوانة مسدس مع أصوات. توقّف فوق حجرة لتدور إلى الأعلى، ثم أفلت الملف على الحجرة العلوية. يتم تحويل الملفات تمامًا كما كان من قبل."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turns the wheel into a revolver cylinder, with sounds. Rest on a chamber to turn it to the top, then drop on the top chamber. Files convert exactly as before."
+          }
+        }
+      }
+    },
+    "settings.rouletteMute" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كتم أصوات الروليت"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute roulette sounds"
+          }
+        }
+      }
+    },
+    "settings.rouletteSection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الروليت الروسية"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Russian Roulette"
+          }
+        }
+      }
+    },
     "settings.routeSupported" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10796,6 +10864,23 @@
         }
       }
     },
+    "wheel.chamberHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يدير هذه الحجرة إلى الأعلى."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turns this chamber to the top."
+          }
+        }
+      }
+    },
     "wheel.convert" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10809,6 +10894,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Convert"
+          }
+        }
+      }
+    },
+    "wheel.firingHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أفلت هنا لاستخدام هذا الخيار."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drop here to use this option."
           }
         }
       }
