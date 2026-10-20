@@ -11,16 +11,16 @@ struct BundledCatalogTests {
         catalog = try BundledCatalogLoader().load()
     }
 
-    @Test("the media catalog has every published path (161)")
+    @Test("the media catalog has every published path (187)")
     func mediaPathCount() {
         let media: Set<FormatFamily> = [.image, .audio, .video]
         let count = catalog.paths.filter { catalog.format($0.source).map { media.contains($0.family) } == true }.count
-        #expect(count == 161)
+        #expect(count == 187)
     }
 
     @Test("the full catalog matches the published list so far")
     func totalPathCount() {
-        #expect(catalog.paths.count == 262)
+        #expect(catalog.paths.count == 288)
     }
 
     @Test("every published media format is present", arguments: [

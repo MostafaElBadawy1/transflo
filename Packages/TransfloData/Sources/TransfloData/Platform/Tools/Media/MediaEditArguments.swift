@@ -6,6 +6,18 @@ enum MediaEditArguments {
     static func steps(
         for settings: ToolSettings, source: String, format: String, info: MediaInfo?
     ) -> [MediaToolStep]? {
+        if case let .snapshotJPEG(time, quality) = settings {
+            guard (1...100).contains(quality),
+                  let png = snapshot(source, format: format, at: time, duration: info?.duration) else { return nil }
+            let level = max(2, 31 - quality * 29 / 100)
+            return [MediaToolStep(arguments: png.arguments + ["-q:v", String(level)], fileExtension: "jpg")]
+        }
+        return standardSteps(for: settings, source: source, format: format, info: info)
+    }
+
+    private static func standardSteps(
+        for settings: ToolSettings, source: String, format: String, info: MediaInfo?
+    ) -> [MediaToolStep]? {
         let step: MediaToolStep?
         switch settings {
         case let .resize(width, height): step = resize(source, format: format, width: width, height: height)

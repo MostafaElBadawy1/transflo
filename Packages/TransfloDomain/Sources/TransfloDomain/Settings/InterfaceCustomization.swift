@@ -17,17 +17,40 @@ public struct InterfaceCustomization: Sendable, Equatable, Codable {
     public var wheelSize: WheelSize
     public var solidSurfaces: Bool
     public var reduceMotion: Bool
+    public var wheelHaptics: Bool
+    public var wheelSound: Bool
 
     public init(
         accentHex: String? = nil,
         wheelSize: WheelSize = .standard,
         solidSurfaces: Bool = false,
-        reduceMotion: Bool = false
+        reduceMotion: Bool = false,
+        wheelHaptics: Bool = true,
+        wheelSound: Bool = true
     ) {
         self.accentHex = Self.validatedHex(accentHex)
         self.wheelSize = wheelSize
         self.solidSurfaces = solidSurfaces
         self.reduceMotion = reduceMotion
+        self.wheelHaptics = wheelHaptics
+        self.wheelSound = wheelSound
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case accentHex, wheelSize, solidSurfaces, reduceMotion, wheelHaptics, wheelSound
+    }
+
+    /// Older preference files lack the feedback flag; preserve their colors and sizing.
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            accentHex: try values.decodeIfPresent(String.self, forKey: .accentHex),
+            wheelSize: try values.decodeIfPresent(WheelSize.self, forKey: .wheelSize) ?? .standard,
+            solidSurfaces: try values.decodeIfPresent(Bool.self, forKey: .solidSurfaces) ?? false,
+            reduceMotion: try values.decodeIfPresent(Bool.self, forKey: .reduceMotion) ?? false,
+            wheelHaptics: try values.decodeIfPresent(Bool.self, forKey: .wheelHaptics) ?? true,
+            wheelSound: try values.decodeIfPresent(Bool.self, forKey: .wheelSound) ?? true
+        )
     }
 
     public static let standard = InterfaceCustomization()
@@ -41,6 +64,7 @@ public struct InterfaceCustomization: Sendable, Equatable, Codable {
 
     /// Validate decoded and edited preferences at the storage/application boundary.
     public var validated: Self {
-        Self(accentHex: accentHex, wheelSize: wheelSize, solidSurfaces: solidSurfaces, reduceMotion: reduceMotion)
+        Self(accentHex: accentHex, wheelSize: wheelSize, solidSurfaces: solidSurfaces, reduceMotion: reduceMotion,
+             wheelHaptics: wheelHaptics, wheelSound: wheelSound)
     }
 }

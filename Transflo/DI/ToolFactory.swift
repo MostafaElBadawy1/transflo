@@ -14,7 +14,10 @@ struct ToolFactory {
     let engines: [any ToolEngine]
     let catalog: ToolCatalog
     let previews: any ToolPreviewProviding
+    let inspector: any ToolInspectionProviding
     let metadata: any ToolMetadataReading
+    /// Smart Rename's suggestions, shared by its engine and its editor.
+    let nameSuggester: SuggestFileNamesUseCase
     private let formats: ConversionCatalog
 
     init(
@@ -30,11 +33,19 @@ struct ToolFactory {
         let ffprobe = FFmpegEngine.bundledProbe(in: bundle)
         previews = MediaToolPreviewProvider(ffmpeg: ffmpeg, ffprobe: ffprobe)
         metadata = FileMetadataReader(ffprobe: ffprobe)
+        inspector = ToolInspector(formats: formats, ffmpeg: ffmpeg, ffprobe: ffprobe)
+        let understanding = VisionImageUnderstanding()
+        let writer = SystemLanguageModelWriter()
+        nameSuggester = SuggestFileNamesUseCase(understanding: understanding, writer: writer)
         engines = [
             ImageToolEngine(ffmpeg: ffmpeg, naming: naming, copier: PasteboardTextCopier()),
             MediaToolEngine(ffmpeg: ffmpeg, ffprobe: ffprobe, naming: naming),
+            GIFCompressionEngine(ffmpeg: ffmpeg, naming: naming),
             PDFToolEngine(naming: naming),
-            FileToolEngine(naming: files)
+            FileToolEngine(naming: files),
+            ArchiveExtractionEngine(naming: files),
+            IntelligenceToolEngine(understanding: understanding, writer: writer, copier: PasteboardTextCopier(),
+                                   naming: naming, files: files, ffmpeg: ffmpeg)
         ]
         self.formats = formats
         do {
@@ -45,9 +56,13 @@ struct ToolFactory {
         }
     }
 
-    func makeEditors(formats: ConversionCatalog, localizer: Localizer) -> ToolEditorCoordinator {
+    func makeEditors(
+        formats: ConversionCatalog, localizer: Localizer, preferences: any ToolPreferencesRepository
+    ) -> ToolEditorCoordinator {
         ToolEditorCoordinator(formats: formats, previews: previews, metadata: metadata, localizer: localizer,
-                              backgroundRenderer: BackgroundPreviewRenderer())
+                              backgroundRenderer: BackgroundPreviewRenderer(),
+                              compressionGoal: { preferences.loadCompressionGoal() }, inspector: inspector,
+                              nameSuggester: nameSuggester)
     }
 
     func makeRunner() -> ToolJobRunner {

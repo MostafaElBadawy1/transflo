@@ -43,6 +43,16 @@ final class WheelSettingsUITests: TransfloUITestCase {
         let restored = expectation(for: NSPredicate { _, _ in self.count(in: window) == before }, evaluatedWith: nil)
         wait(for: [restored], timeout: 5)
         attachDiagnosticScreenshot(window, named: "settings-wheel-tools-en-light")
+        window.radioButtons["Actions"].click()
+        let copy = window.descendants(matching: .any)["settings.wheel.action.copy"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 5))
+        XCTAssertFalse(crop.exists)
+        XCTAssertGreaterThan(window.staticTexts["Wheel size"].frame.minY, copy.frame.maxY)
+        window.radioButtons["Convert"].click()
+        XCTAssertTrue(window.descendants(matching: .any)["settings.wheel.format.png"].waitForExistence(timeout: 5))
+        XCTAssertTrue(window.staticTexts["Images"].exists)
+        XCTAssertTrue(window.staticTexts["Documents"].exists)
+        XCTAssertFalse(copy.exists)
     }
 
     func testHideAllWarnsInArabicDark() {

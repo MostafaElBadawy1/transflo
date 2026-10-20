@@ -4,6 +4,8 @@ import Foundation
 /// `defaults(for:)`; editors supply their own.
 public enum ToolSettings: Sendable, Hashable {
     case compress(CompressionGoal)
+    /// Explicit image compression controls; nil long edge keeps the source dimensions for presets.
+    case compressImage(goal: CompressionGoal, maximumLongEdge: Int?)
     /// Clockwise quarter turns (1...3) and mirroring.
     case rotate(quarterTurns: Int, flipHorizontal: Bool, flipVertical: Bool)
     /// Exact output size in pixels.
@@ -20,6 +22,7 @@ public enum ToolSettings: Sendable, Hashable {
     case splitPages(every: Int)
     /// Seconds into the video.
     case snapshot(at: Double)
+    case snapshotJPEG(at: Double, quality: Int)
     case annotate([Annotation])
     /// Boxes painted solid black; PDF pages carrying a box are flattened so hidden text is gone.
     case redact([NormalizedRect])
@@ -35,8 +38,19 @@ public enum ToolSettings: Sendable, Hashable {
     case metadata([MetadataField: String])
     /// `{name}` is the original name, `{n}` a counter starting at `start`.
     case rename(pattern: String, start: Int)
+    /// Smart Rename: the new base name for each file, in order (extensions are kept).
+    case renameTo([String])
     /// Move: the folder chosen before the job runs.
     case destination(URL)
+    case collageLayout(CollageSettings)
+    case assemble(AssemblySettings)
+    case removeBackground(BackgroundRemovalSettings)
+    case normalize(LoudnessSettings)
+    case channels(ChannelMix)
+    case copyCodes([String])
+    case removeMetadata(Set<MetadataCategory>)
+    case pageAnnotations([Int: [Annotation]])
+    case pageRedactions([Int: [NormalizedRect]])
     /// Tools without parameters.
     case none
 

@@ -6,6 +6,7 @@ struct AppPageGrid: View {
     let thumbnails: [Data]
     let isSelected: (Int) -> Bool
     let onToggle: (Int) -> Void
+    @State private var contentHeight: CGFloat = AppDimensions.Editor.listHeight
 
     var body: some View {
         ScrollView {
@@ -15,14 +16,16 @@ struct AppPageGrid: View {
                 ForEach(thumbnails.indices, id: \.self) { index in
                     Button { onToggle(index) } label: { cell(index) }
                         .buttonStyle(.plain)
+                        .appFocusRing(RoundedRectangle(cornerRadius: AppDimensions.Radius.small))
                         .accessibilityLabel(localizer.string(.editorPage, arguments: [String(index + 1)]))
                         .accessibilityIdentifier("transflo.page.\(index + 1)")
                         .accessibilityAddTraits(isSelected(index) ? .isSelected : [])
                 }
             }
             .padding(AppDimensions.Spacing.medium)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         }
-        .frame(height: AppDimensions.Editor.listHeight)
+        .frame(height: min(contentHeight, AppDimensions.Editor.listHeight))
         .appGlass(.card, in: RoundedRectangle(cornerRadius: AppDimensions.Radius.large))
     }
 

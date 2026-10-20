@@ -20,6 +20,10 @@ public enum JobError: Error, Sendable, Equatable {
     case nothingFound
     /// The requested byte budget cannot be reached within the safe encode limits.
     case targetUnreachable
+    /// A single-frame tool must not silently discard animation or document frames.
+    case multipleFrames
+    /// At least one source lacks the requested pages, channels or timeline range.
+    case incompatibleSelection
     /// Completed files remain available when a later batch item fails or is cancelled.
     indirect case partialFailure(completed: [URL], cause: JobError)
 

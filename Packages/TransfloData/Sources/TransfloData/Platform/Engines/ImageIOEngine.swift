@@ -4,7 +4,7 @@ import ImageIO
 import TransfloDomain
 import UniformTypeIdentifiers
 
-/// Raster conversions and image → PDF with Apple's ImageIO and Core Graphics.
+/// Raster conversions, icons (ICO / ICNS) and image → PDF with Apple's ImageIO and Core Graphics.
 ///
 /// Orientation is applied to the pixels (outputs are upright everywhere, including BMP and PDF),
 /// metadata is otherwise carried over, and transparency is flattened onto white for formats
@@ -12,11 +12,13 @@ import UniformTypeIdentifiers
 public struct ImageIOEngine: ConversionEngine {
     public let id = EngineIDs.imageIO
 
-    static let readableFormats: Set<String> = ["jpg", "png", "heic", "tiff", "bmp", "webp", "avif", "gif"]
+    static let readableFormats: Set<String> = [
+        "jpg", "png", "heic", "tiff", "bmp", "webp", "avif", "gif", "ico", "icns"
+    ]
     static let writeTypes: [String: String] = [
         "jpg": UTType.jpeg.identifier, "png": UTType.png.identifier, "heic": UTType.heic.identifier,
         "tiff": UTType.tiff.identifier, "bmp": UTType.bmp.identifier, "gif": UTType.gif.identifier,
-        "avif": "public.avif"
+        "avif": "public.avif", "ico": "com.microsoft.ico", "icns": "com.apple.icns"
     ]
     static let opaqueFormats: Set<String> = ["jpg", "bmp"]
     static let lossyQuality = 0.9
@@ -51,6 +53,11 @@ public struct ImageIOEngine: ConversionEngine {
             try PDFImageWriter.write(decoded.image, pointSize: decoded.pointSize, to: request.destination)
         } else {
             guard let type = Self.writeTypes[target] else { throw .unsupported }
+            if IconFileWriter.sizes[target] != nil {
+                try IconFileWriter.write(decoded.image, format: target, type: type, to: request.destination)
+                progress(1)
+                return
+            }
             let image = Self.opaqueFormats.contains(target) ? try ImageDecoding.flattened(decoded.image) : decoded.image
             try write(image, properties: decoded.properties, type: type, to: request.destination)
         }

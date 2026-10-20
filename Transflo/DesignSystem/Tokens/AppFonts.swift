@@ -9,6 +9,7 @@ enum AppFonts {
         case .headline: .system(.subheadline, design: .rounded, weight: .semibold)
         case .body: .system(.body)
         case .caption: .system(.caption)
+        case .captionEmphasis: .system(.caption, weight: .semibold)
         case .wedgeCompact: .system(.caption2, weight: .semibold)
         case .wheelLabel(let size): .system(size: size, weight: .semibold)
         }

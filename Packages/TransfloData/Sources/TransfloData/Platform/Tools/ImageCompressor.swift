@@ -17,10 +17,17 @@ enum ImageCompressor {
     }
 
     static func compress(
-        _ source: URL, format: String, level: CompressionLevel, writer: ImageFileWriter, to output: URL
+        _ source: URL,
+        format: String,
+        level: CompressionLevel,
+        writer: ImageFileWriter,
+        to output: URL,
+        maximumLongEdge: Int? = nil,
+        usesPresetSize: Bool = true
     ) throws(JobError) {
         var decoded = try ImageDecoding.decodeUpright(source)
-        if level == .strong, let smaller = ImageScaling.fit(decoded.image, longEdge: strongLongEdge) {
+        let edge = maximumLongEdge ?? (usesPresetSize && level == .strong ? strongLongEdge : nil)
+        if let edge, let smaller = ImageScaling.fit(decoded.image, longEdge: edge) {
             decoded = ImageDecoding.Decoded(
                 image: smaller, properties: decoded.properties, pointSize: decoded.pointSize
             )

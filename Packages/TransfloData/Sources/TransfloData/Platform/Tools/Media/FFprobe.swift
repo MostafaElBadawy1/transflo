@@ -28,8 +28,16 @@ enum FFprobe {
             hasAudio: audio != nil,
             audioChannels: audio?.channels,
             frameRate: video?.averageFrameRate.flatMap(frameRate),
-            tags: (dto.format?.tags ?? [:]).reduce(into: [:]) { $0[$1.key.lowercased()] = $1.value }
+            tags: metadataTags(streams: streams, container: dto.format?.tags ?? [:])
         )
+    }
+
+    private static func metadataTags(streams: [FFprobeStreamDTO], container: [String: String]) -> [String: String] {
+        var result: [String: String] = [:]
+        for tags in streams.compactMap(\.tags) + [container] {
+            for (key, value) in tags { result[key.lowercased()] = value }
+        }
+        return result
     }
 
     /// `"30000/1001"` → 29.97; `"0/0"` → nil.

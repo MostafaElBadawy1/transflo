@@ -27,6 +27,9 @@ public struct ImageToolEngine: ToolEngine {
         switch tool {
         case .readCode:
             return ids.allSatisfy { Self.editable.contains($0) || $0 == "pdf" }
+        case .removeBackground:
+            // The result is PNG; availability must not depend on an encoder for the input format.
+            return ids.allSatisfy(Self.editable.contains)
         case .imagesToPDF, .collage:
             return ids.count >= 2 && ids.allSatisfy(Self.editable.contains)
         case .editMetadata:
@@ -43,12 +46,29 @@ public struct ImageToolEngine: ToolEngine {
         progress: @escaping @Sendable (Double) -> Void
     ) async throws(JobError) -> [URL] {
         try await BlockingWork.runCancellable { [self] isCancelled throws(JobError) -> [URL] in
+            try ToolPreflight.images(request.items, tool: request.tool)
             switch request.tool {
             case .readCode:
+                if case .copyCodes(let codes) = request.settings {
+                    guard !codes.isEmpty else { throw .nothingFound }
+                    copier.copy(codes.joined(separator: "\n"))
+                    return []
+                }
                 return try readCodes(request.items, isCancelled: isCancelled)
             case .imagesToPDF:
+                if case .assemble(let assembly) = request.settings {
+                    guard let items = assembly.ordered(request.items) else { throw .unsupported }
+                    return try imagesToPDF(items, layout: assembly, isCancelled: isCancelled)
+                }
                 return try imagesToPDF(request.items, isCancelled: isCancelled)
             case .collage:
+                if case .collageLayout(let settings) = request.settings, let first = request.items.first {
+                    let image = try CollageRenderer.render(request.items.map(\.url), settings: settings)
+                    if isCancelled() { throw .cancelled }
+                    let output = try naming.destination(for: first.url, tool: .collage, pathExtension: "png")
+                    try PNGWriter.write(image, to: output)
+                    return [output]
+                }
                 return try collage(request.items, settings: request.settings, isCancelled: isCancelled)
             default:
                 return try perFile(request, isCancelled: isCancelled, progress: progress)
@@ -83,20 +103,30 @@ public struct ImageToolEngine: ToolEngine {
         )
         do throws(JobError) {
             switch (tool, settings) {
-            case let (.compress, .compress(.level(level))):
-                try ImageCompressor.compress(item.url, format: format, level: level, writer: writer, to: output)
-            case let (.compress, .compress(.targetBytes(bytes))):
-                try TargetImageCompressor.compress(item.url, budget: (format, bytes), writer: writer,
-                                                   to: output, isCancelled: isCancelled)
-            case (.removeMetadata, _):
-                try writer.write(try ImageDecoding.decodeUpright(item.url).image, format: format, to: output)
+            case (.compress, _):
+                try ImageCompressionHandler.write(item, settings: settings,
+                                                  writer: writer, to: output, isCancelled: isCancelled)
+            case (.removeMetadata, let settings):
+                let decoded = try ImageDecoding.decodeUpright(item.url)
+                let categories: Set<MetadataCategory>
+                if case .removeMetadata(let selected) = settings { categories = selected } else {
+                    categories = Set(MetadataCategory.allCases)
+                }
+                try writer.write(decoded.image, format: format,
+                                 properties: MetadataFiltering.image(decoded.properties, removing: categories),
+                                 to: output)
             case let (.editMetadata, .metadata(values)):
                 let decoded = try ImageDecoding.decodeUpright(item.url)
                 let properties = ImageMetadataWriter.properties(decoded.properties, applying: values)
                 try writer.write(decoded.image, format: format, properties: properties, to: output)
             case (.removeBackground, _):
                 let original = try ImageDecoding.decodeUpright(item.url).image
-                try PNGWriter.write(try VisionImageTools.removeBackground(from: original), to: output)
+                let options: BackgroundRemovalSettings
+                if case .removeBackground(let settings) = settings { options = settings } else {
+                    options = BackgroundRemovalSettings()
+                }
+                try PNGWriter.write(try VisionImageTools.removingBackground(from: original, settings: options).image,
+                                    to: output)
             default:
                 let decoded = try ImageDecoding.decodeUpright(item.url)
                 let image = try edited(decoded.image, settings: settings)
@@ -181,17 +211,21 @@ public struct ImageToolEngine: ToolEngine {
         }
     }
 
-    private func imagesToPDF(_ items: [ToolItem], isCancelled: () -> Bool) throws(JobError) -> [URL] {
+    private func imagesToPDF(
+        _ items: [ToolItem], layout: AssemblySettings? = nil, isCancelled: () -> Bool
+    ) throws(JobError) -> [URL] {
         guard let first = items.first else { throw .failed }
         if isCancelled() { throw .cancelled }
         let output = try naming.destination(for: first.url, tool: .imagesToPDF, pathExtension: "pdf")
         try OutputFile.write(to: output) { staged throws(JobError) in
-            try writePDF(items, to: staged, isCancelled: isCancelled)
+            try writePDF(items, layout: layout, to: staged, isCancelled: isCancelled)
         }
         return [output]
     }
 
-    private func writePDF(_ items: [ToolItem], to output: URL, isCancelled: () -> Bool) throws(JobError) {
+    private func writePDF(
+        _ items: [ToolItem], layout: AssemblySettings?, to output: URL, isCancelled: () -> Bool
+    ) throws(JobError) {
         var mediaBox = CGRect(x: 0, y: 0, width: 1, height: 1)
         guard let context = CGContext(output as CFURL, mediaBox: &mediaBox, nil) else { throw .destinationUnavailable }
         do throws(JobError) {
@@ -199,10 +233,18 @@ public struct ImageToolEngine: ToolEngine {
                 if isCancelled() { throw .cancelled }
                 try RasterLimits.withPool { () throws(JobError) in
                     let page = try ImageDecoding.decodeUpright(item.url)
-                    var box = CGRect(origin: .zero, size: page.pointSize)
+                    let size = layout?.pageSize(original: page.pointSize) ?? page.pointSize
+                    var box = CGRect(origin: .zero, size: size)
                     let info = [kCGPDFContextMediaBox as String: Data(bytes: &box, count: MemoryLayout<CGRect>.size)]
                     context.beginPDFPage(info as CFDictionary)
-                    context.draw(page.image, in: box)
+                    let margin = layout?.margin ?? 0
+                    let content = box.insetBy(dx: min(margin, box.width / 3), dy: min(margin, box.height / 3))
+                    let placement = layout ?? AssemblySettings(order: [], margin: 0)
+                    let imageSize = CGSize(width: page.image.width, height: page.image.height)
+                    context.saveGState()
+                    context.clip(to: content)
+                    context.draw(page.image, in: placement.imageFrame(image: imageSize, page: size))
+                    context.restoreGState()
                     context.endPDFPage()
                 }
             }

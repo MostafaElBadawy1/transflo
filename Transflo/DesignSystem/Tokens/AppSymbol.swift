@@ -3,6 +3,8 @@ enum AppSymbol: String {
     case menuBarWifi = "wifi"
     case menuBarBattery = "battery.100percent"
     case arrowUp = "arrow.up"
+    case arrowDown = "arrow.down"
+    case reset = "arrow.counterclockwise"
     case menuBar = "dial.medium"
 
     case compress = "arrow.down.right.and.arrow.up.left"
@@ -31,6 +33,12 @@ enum AppSymbol: String {
     case editMetadata = "info.circle"
     case removeMetadata = "tag.slash"
     case rename = "character.cursor.ibeam"
+    case extractText = "text.viewfinder"
+    case describeImage = "text.below.photo"
+    case smartRename = "sparkles"
+    case upscale = "plus.magnifyingglass"
+    case extractArchive = "archivebox"
+    case recipe = "wand.and.rays"
     case more = "ellipsis"
 
     case airDrop = "dot.radiowaves.left.and.right"
@@ -46,10 +54,15 @@ enum AppSymbol: String {
     case collapseShelf = "chevron.right.2"  // The shelf docks on the right edge in every language.
     case removeFromShelf = "xmark.circle.fill"
     case arrowForward = "arrow.forward"
+    /// Points to the reading direction's start, so it mirrors in Arabic by itself.
+    case arrowBackward = "arrow.backward"
 
     case hint = "info.circle.fill"
     case cancelJob = "xmark.circle"
     case revealJob = "magnifyingglass.circle"
+    case undoJob = "arrow.uturn.backward.circle"
+    case star = "star"
+    case starFilled = "star.fill"
     case jobsEmpty = "tray"
     case success = "checkmark"
     case failure = "exclamationmark"

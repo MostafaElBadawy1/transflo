@@ -1,7 +1,7 @@
 import SwiftUI
 import TransfloDomain
 
-/// Visual preferences with a live wheel preview and a scoped reset.
+/// Appearance preferences used once in General; wheel geometry lives in Wheels.
 struct CustomizationSettingsView: View {
     let settings: SettingsViewModel
     let viewModel: CustomizationViewModel
@@ -16,14 +16,6 @@ struct CustomizationSettingsView: View {
                 SettingsDivider()
                 AppAccentPicker(selection: binding(\.accentHex))
             }
-            SettingsSection(title: .settingsWheelStyle) {
-                SettingsRow(label: .settingsWheelSize) {
-                    AppSegmentedPicker(key: .settingsWheelSize, selection: binding(\.wheelSize), options: Self.sizes,
-                                       width: AppDimensions.Window.settingsControlWidth)
-                }
-                wheelPreview
-                SettingsFootnote(message: .settingsWheelSizeHint)
-            }
             SettingsSection(title: .settingsAccessibility) {
                 SettingsRow(label: .settingsLiquidGlass) {
                     AppToggle(key: .settingsLiquidGlass, isOn: liquidGlass)
@@ -33,32 +25,11 @@ struct CustomizationSettingsView: View {
                     AppToggle(key: .settingsReduceMotion, isOn: binding(\.reduceMotion))
                 }
             }
-            AppButton(key: .settingsResetCustomization, variant: .tertiary) {
-                viewModel.reset()
+            AppButton(key: .settingsResetAppearance, variant: .tertiary) {
+                viewModel.update { $0.accentHex = nil; $0.solidSurfaces = false; $0.reduceMotion = false }
                 settings.selectAppearance(.system)
             }
         }
-    }
-
-    private var wheelPreview: some View {
-        let scale = viewModel.preferences.wheelSize.scale
-        return AppRadialWheel(
-            wedges: ["PNG", "JPG", "WEBP", "TIFF", "HEIC", "PDF"].map {
-                WheelWedgeContent(id: $0, label: .verbatim($0), symbol: nil)
-            },
-            geometry: WheelGeometry(wedgeCount: 6, innerRadius: AppDimensions.Wheel.innerRadius * scale,
-                                    outerRadius: AppDimensions.Wheel.compactOuterRadius * scale,
-                                    isRightToLeft: false),
-            highlightedIndex: 0, hubTitle: .wheelConvert, hubGlyph: "⇧"
-        )
-        .scaleEffect(AppDimensions.CustomizationPreview.scale)
-        // scaleEffect changes drawing, not layout. Reserve one stable viewport for every size
-        // so the full-size wheel cannot widen the settings card or hosting window.
-        .frame(width: AppDimensions.CustomizationPreview.viewport, height: AppDimensions.CustomizationPreview.viewport)
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .ignore)
-        .accessibilityHidden(true)
-        .allowsHitTesting(false)
     }
 
     private var liquidGlass: Binding<Bool> {
@@ -80,9 +51,5 @@ struct CustomizationSettingsView: View {
     private static let appearances: [AppSegmentedPicker<AppearanceMode>.Option] = [
         .init(value: .system, label: .appearanceSystem), .init(value: .light, label: .appearanceLight),
         .init(value: .dark, label: .appearanceDark)
-    ]
-    private static let sizes: [AppSegmentedPicker<InterfaceCustomization.WheelSize>.Option] = [
-        .init(value: .compact, label: .settingsSizeCompact), .init(value: .standard, label: .settingsSizeStandard),
-        .init(value: .large, label: .settingsSizeLarge)
     ]
 }

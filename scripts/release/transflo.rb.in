@@ -9,7 +9,7 @@ cask "transflo" do
   url "https://github.com/Ali-Fayed/transflo/releases/download/v#{version}/Transflo-#{version}-arm64.dmg"
   name "Transflo"
   desc "Convert, edit and act on files from a radial wheel at your cursor"
-  homepage "https://github.com/Ali-Fayed/transflo"
+  homepage "https://transfloformac.ali-fayed.com"
 
   depends_on arch: :arm64
   depends_on macos: :sonoma

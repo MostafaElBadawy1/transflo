@@ -65,10 +65,17 @@ enum JobPresentation {
         case .format(let format): .formatted(.jobConvertTo, [format.displayName])
         case .tool(let tool): .key(WheelPresentation.toolLabels[tool] ?? .wheelTools)
         case .action(let action): .key(WheelPresentation.label(for: action))
+        case .recipe(let recipe): .verbatim(recipe.name)
         }
     }
 
     static func message(for error: JobError) -> L10nKey {
+        if error == .multipleFrames { return .errorMultipleFrames }
+        if error == .incompatibleSelection { return .errorIncompatibleSelection }
+        return standardMessage(for: error)
+    }
+
+    private static func standardMessage(for error: JobError) -> L10nKey {
         switch error {
         case .sourceMissing: .errorSourceMissing
         case .destinationUnavailable, .destinationOccupied: .errorDestinationUnavailable
@@ -79,19 +86,21 @@ enum JobPresentation {
         case .nothingFound: .errorNothingFound
         case .targetUnreachable: .errorTargetUnreachable
         case .partialFailure(_, let cause): message(for: cause)
+        default: .errorFailed
         }
     }
 
     private static func successTitle(for option: WheelOption, outputs: [URL]) -> L10nKey {
         switch option.kind {
-        case .tool(.readCode) where outputs.isEmpty: .hudCopied
+        case .tool(.readCode) where outputs.isEmpty, .tool(.describeImage): .hudCopied
         case .action(let action): actionDone[action] ?? .hudDone
         default: .hudDone
         }
     }
 
     private static let actionDone: [ActionKind: L10nKey] = [
-        .airDrop: .hudShared, .float: .hudAddedToShelf, .copy: .hudFilesCopied, .move: .hudMoved,
+        .airDrop: .hudShared, .float: .hudAddedToShelf, .archive: .hudArchived,
+        .copy: .hudFilesCopied, .move: .hudMoved,
         .copyPath: .hudPathCopied, .terminal: .hudOpenedInTerminal
     ]
 
@@ -102,6 +111,7 @@ enum JobPresentation {
     private static func nothingFoundMessage(for option: WheelOption) -> L10nKey {
         switch option.kind {
         case .tool(.readCode): .errorNoCodeFound
+        case .tool(.extractText), .tool(.describeImage), .tool(.smartRename): .errorNoTextFound
         case .tool(.compress): .errorAlreadySmall
         default: .errorNothingFound
         }

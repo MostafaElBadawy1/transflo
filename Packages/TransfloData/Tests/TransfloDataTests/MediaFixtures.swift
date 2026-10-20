@@ -14,7 +14,7 @@ enum MediaFixtures {
 
     static let imageIOTypes: [String: UTType] = [
         "jpg": .jpeg, "png": .png, "heic": .heic, "tiff": .tiff, "bmp": .bmp, "gif": .gif,
-        "avif": UTType("public.avif") ?? .image
+        "avif": UTType("public.avif") ?? .image, "ico": .ico, "icns": .icns
     ]
 
     private static func vendorBinary(_ name: String) -> URL? {
@@ -57,6 +57,11 @@ enum MediaFixtures {
         case "svg":
             let svg = ##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="30"><rect width="40" height="30" fill="#136F63"/></svg>"##
             try Data(svg.utf8).write(to: url)
+        case "ico", "icns":
+            try await BlockingWork.run { () throws(JobError) in
+                guard let image = makeTestImage(), let type = ImageIOEngine.writeTypes[format] else { throw .failed }
+                try IconFileWriter.write(image, format: format, type: type, to: url)
+            }
         case _ where DocumentFixtures.formats.contains(format):
             try await DocumentFixtures.make(format, at: url, in: folder)
         case _ where imageIOTypes[format] != nil && format != "gif":

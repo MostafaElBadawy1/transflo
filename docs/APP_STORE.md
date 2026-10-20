@@ -10,7 +10,7 @@ Transflo ships in two editions built from the same code:
 | Finder-selection shortcut (⌥⌘↩) | Yes | No; **Open in Transflo** in the right-click menu works |
 | Pages, Keynote, Numbers conversions | Yes | No (Apple Events aren't allowed) |
 | Terminal action | Yes | No |
-| Updates | Check for Updates (GitHub) | App Store |
+| Updates | Daily check + Check for Updates; opens the GitHub release | Daily check + Check for Updates; opens the App Store, which installs it |
 
 The switches live in `AppEdition` (TransfloDomain) and `EditionFactory` (the app's DI). The `APP_STORE`
 compilation condition selects the edition; nothing else in the code checks for it.
@@ -37,28 +37,33 @@ directly, using the account Xcode is signed in to. Then pick the build on the ve
 and submit it for review.
 
 ## Listing copy
+Character limits are checked: subtitle 30, promotional text 170, keywords 100, description 4000. The copy
+describes only what the App Store edition does (no Terminal action, no Pages/Keynote/Numbers conversions,
+no Finder-selection shortcut).
+
 - **Name:** Transflo
 - **Subtitle:** Convert files at your cursor
-- **Promotional text:** Drag a file, tap a key, drop it on a petal. Convert, edit and share without opening another app.
-- **Keywords:** convert,converter,file,image,video,audio,pdf,compress,crop,resize,heic,webp,mp4,batch,wheel
-- **Description:**
+- **Promotional text:** [English (U.S.) copy](app-store/promotional-text-en-US.txt).
+- **Keywords:** converter,heic,jpg,png,webp,pdf,compress,resize,crop,mp4,mp3,video,audio,image,batch,rename,airdrop
+- **Description:** [English (U.S.) copy](app-store/description-en-US.txt), including grouped tools, Recipes, watch folders, archives and on-device intelligence.
 
-  Transflo puts a wheel of choices under your pointer while you drag a file. Tap Shift to convert, Command for
-  tools, Control for actions, then drop on a petal. The result is saved next to the original.
+- **What's New (1.0.1):**
 
-  • Convert images, audio, video, PDFs, documents, spreadsheets, subtitles and archives.
-  • Compress to an exact size, crop, resize, rotate, annotate, redact, add a background and more.
-  • AirDrop, copy, move or float files on a shelf from the same gesture.
-  • Hide the options you never use in Settings › Wheel, so every petal is bigger.
-  • English and Arabic, light and dark, accent colors, and VoiceOver support.
-  • Everything runs on your Mac. No account, no tracking, no uploads.
+  • Compact Tools groups with smaller labels and icons, Back navigation and a pause to avoid accidental choices.
+  • Saved Recipes on the Tools wheel, including recipes whose first conversion already matches the input.
+  • Archive selected files and folders into ZIP; extract ZIP, RAR, TAR and GZIP into new folders.
+  • General offers Best, Balanced and Smaller defaults. Formats has been removed as a separate Settings tab.
+  • Recipes, watch folders, Shortcuts, Spotlight and Siri workflows.
+  • On-device OCR for images and every PDF page, image descriptions, Smart Rename and 2× upscaling.
+  • Safer Undo, filename handling, recipe cancellation, watched outputs and promised-file drops.
 
-  Transflo saves next to your files. The first time you drop a file from a folder, it asks once for access to
-  that folder.
-- **Support URL:** https://transflo.ali-fayed.com/support/
-- **Privacy:** App Privacy › *Data Not Collected*. The App Store edition makes no network requests.
-- **Screenshots:** 2880 × 1800 (or 1440 × 900). Use `./scripts/capture-screenshots.sh` and place the wheel and
-  editor shots on the branded backdrop.
+- **Support URL:** https://transfloformac.ali-fayed.com/support
+- **Privacy Policy URL:** https://transfloformac.ali-fayed.com/privacy
+- **Privacy:** App Privacy › *Data Not Collected*. The only network request is the update check, which asks the
+  public App Store lookup service (`itunes.apple.com/lookup`) for Transflo's version number; it sends no user data.
+  The `com.apple.security.network.client` entitlement exists only for this. Apple doesn't allow apps to update
+  themselves (guideline 2.4.5(vii)), so Transflo only opens its App Store page.
+- **Screenshots:** ten 2880 × 1800 opaque PNGs in the established dark/teal style. Run `scripts/render-promo.sh --appstore` after capturing the current app UI. The ordered set covers conversion, grouped tools, image editing, PDF, media, Recipes, archives, compression, customization and Arabic. See [listing assets and capture instructions](app-store/README.md).
 
 ## Review notes (paste into App Review Information)
 Transflo is a menu-bar app. To try it: drag any image from Finder and, while still dragging, tap Shift; a wheel
@@ -92,5 +97,4 @@ Oversized or malformed inputs are rejected rather than silently truncated. Curre
 include a 100,000-row/16,384-column/1,000,000-cell expanded sheet budget, 2,000 pages per PDF,
 64 MiB text input, 32 MiB XML parts, and 1 GiB/20,000-entry archive extraction budget. Archive
 budgets are checked during helper execution and after it exits; they are not a filesystem quota.
-Wide spreadsheet PDF exports span additional pages horizontally. PDFs without a text layer
-return a no-content error for text/spreadsheet extraction; OCR is not implied.
+Wide spreadsheet PDF exports span additional pages horizontally. The Extract Text tool reads text layers and performs OCR page by page for scanned PDFs.

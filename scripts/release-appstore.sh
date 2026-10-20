@@ -31,6 +31,9 @@ for binary in ffmpeg ffprobe; do
   [[ -x "$ROOT/Vendor/ffmpeg/bin/$binary" ]] || fail "run scripts/build-ffmpeg.sh first ($binary missing)"
 done
 VERSION="$(awk -F' = ' '$1 == "MARKETING_VERSION" { print $2 }' "$ROOT/Configs/Base.xcconfig")"
+VERSION="${TRANSFLO_APPSTORE_VERSION:-$VERSION}"
+BUILD="${TRANSFLO_APPSTORE_BUILD:-$(awk -F' = ' '$1 == "CURRENT_PROJECT_VERSION" { print $2 }' "$ROOT/Configs/Base.xcconfig")}"
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && "$BUILD" =~ ^[1-9][0-9]*$ ]] || fail "invalid App Store version/build"
 ARCHIVE="$OUT/Transflo-$VERSION.xcarchive"
 [[ ! -e "$ARCHIVE" ]] || fail "$ARCHIVE already exists; move it aside first"
 
@@ -47,7 +50,8 @@ else
 fi
 xcodebuild archive -quiet -project "$ROOT/Transflo.xcodeproj" -scheme "Transflo App Store" -configuration AppStore \
   -destination 'generic/platform=macOS' -archivePath "$ARCHIVE" -derivedDataPath "$WORK/DerivedData" \
-  DEVELOPMENT_TEAM="$TEAM" "${SIGNING[@]}" ${AUTH[@]+"${AUTH[@]}"}
+  DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \
+  "${SIGNING[@]}" ${AUTH[@]+"${AUTH[@]}"}
 
 APP="$ARCHIVE/Products/Applications/Transflo.app"
 codesign --verify --deep --strict "$APP"

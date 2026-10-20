@@ -8,6 +8,8 @@ enum CropAspect: Hashable, CaseIterable {
     case nineSixteen
     case threeFour
     case fourFive
+    case threeTwo
+    case twoThree
 
     /// Width ÷ height in pixels, or `nil` for free cropping.
     func ratio(imageWidth: Int, imageHeight: Int) -> Double? {
@@ -20,6 +22,8 @@ enum CropAspect: Hashable, CaseIterable {
         case .nineSixteen: 9.0 / 16.0
         case .threeFour: 3.0 / 4.0
         case .fourFive: 4.0 / 5.0
+        case .threeTwo: 3.0 / 2.0
+        case .twoThree: 2.0 / 3.0
         }
     }
 }

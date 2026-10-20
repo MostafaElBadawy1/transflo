@@ -14,6 +14,10 @@ public struct VisibilityFilteredWheelOptionsProvider: WheelOptionsProviding {
 
     public func options(for wheel: WheelKind, items: [URL]) -> [WheelOption] {
         let current = visibility.loadWheelVisibility()
-        return base.options(for: wheel, items: items).filter(current.isVisible)
+        return base.options(for: wheel, items: items).filter {
+            // Recipes have no visibility checkbox; a stale hidden ID must not strand a saved recipe.
+            if case .recipe = $0.kind { return true }
+            return current.isVisible($0)
+        }
     }
 }

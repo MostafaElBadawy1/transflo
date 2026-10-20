@@ -40,19 +40,70 @@ final class WheelPreviewUITests: TransfloUITestCase {
     func testActionsWheelInEnglishLight() {
         let window = wheel("actions", language: "en", appearance: "light")
         // Each petal is a button for VoiceOver, named after its option.
-        for name in ["AirDrop", "Float", "Copy", "Move", "Copy Path", "Terminal"] {
+        for name in ["AirDrop", "Archive", "Copy", "Move", "Copy Path", "Terminal"] {
             XCTAssertTrue(window.buttons[name].exists, name)
         }
-        XCTAssertTrue(window.buttons["Float"].isSelected)
+        XCTAssertTrue(window.buttons["Archive"].isSelected)
         attachDiagnosticScreenshot(window, named: "wheel-actions-en-light")
     }
 
     func testToolsWheelInEnglishDark() {
         let window = wheel("tools", language: "en", appearance: "dark")
         XCTAssertTrue(window.buttons["Compress"].exists)
-        XCTAssertTrue(window.buttons["More"].exists)
+        XCTAssertTrue(window.buttons["Size & Crop"].exists)
+        XCTAssertTrue(window.buttons["Metadata"].exists)
+        XCTAssertFalse(window.buttons["More"].exists)
         attachDiagnosticScreenshot(window, named: "wheel-tools-en-dark")
+        window.buttons["Size & Crop"].click()
+        XCTAssertTrue(window.buttons["Upscale 2×"].waitForExistence(timeout: 3))
+        XCTAssertEqual(window.buttons.matching(identifier: "Upscale 2×").count, 1)
+        XCTAssertTrue(window.buttons["Back"].exists)
+        window.buttons["Back"].click()
+        XCTAssertTrue(window.buttons["Metadata"].waitForExistence(timeout: 3))
+        window.buttons["Metadata"].click()
+        XCTAssertTrue(window.buttons["Remove Metadata"].waitForExistence(timeout: 3))
+        XCTAssertEqual(window.buttons.matching(identifier: "Remove Metadata").count, 1)
     }
+    func testGroupedToolsInArabic() {
+        let window = wheel("tools", language: "ar", appearance: "dark")
+        XCTAssertTrue(window.buttons["الحجم والقص"].exists)
+        window.buttons["الحجم والقص"].click()
+        XCTAssertTrue(window.buttons["تكبير ×2"].waitForExistence(timeout: 3))
+        XCTAssertTrue(window.buttons["رجوع"].exists)
+        attachDiagnosticScreenshot(window, named: "wheel-tools-size-ar-dark")
+        window.buttons["رجوع"].click()
+        XCTAssertTrue(window.buttons["البيانات الوصفية"].waitForExistence(timeout: 3))
+    }
+
+    func testSavedRecipeAppearsOnToolsWheelAfterRelaunch() {
+        continueAfterFailure = false
+        let app = makeApplication()
+        app.launchArguments = [LaunchArgument.openSettings, LaunchArgument.settingsTab, "recipes",
+                               "-settings.language", "en"]
+        app.launch()
+        let settings = app.windows[WindowIdentifier.settings]
+        XCTAssertTrue(settings.waitForExistence(timeout: 10))
+        settings.buttons["settings.recipes.new"].click()
+        let name = settings.textFields["settings.recipes.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.click()
+        name.typeText("Quick clean")
+        settings.buttons["+ Compress"].click()
+        let save = settings.buttons["settings.recipes.save"]
+        settings.scrollViews.firstMatch.scroll(byDeltaX: 0, deltaY: -600)
+        save.click()
+        XCTAssertTrue(settings.buttons["settings.recipes.edit.Quick clean"].waitForExistence(timeout: 5))
+        app.terminate()
+        app.launchArguments = [LaunchArgument.previewWheel, "tools", "-settings.language", "en"]
+        app.launch()
+        let wheel = app.dialogs[WindowIdentifier.wheel]
+        XCTAssertTrue(wheel.buttons["Recipes"].waitForExistence(timeout: 10))
+        wheel.buttons["Recipes"].click()
+        XCTAssertTrue(wheel.buttons["Quick clean"].waitForExistence(timeout: 5))
+        XCTAssertFalse(wheel.buttons["Manage Recipes"].exists)
+        attachDiagnosticScreenshot(wheel, named: "saved-recipe-wheel")
+    }
+
     func testMultiFileBadgeAndSummaryOnEveryWheel() {
         for kind in ["convert", "tools", "actions"] {
             let app = makeApplication()

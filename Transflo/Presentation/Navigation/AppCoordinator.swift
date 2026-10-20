@@ -2,6 +2,7 @@ import AppKit
 import Observation
 import SwiftUI
 import TransfloData
+import TransfloDomain
 
 /// Owns app-level navigation: the Welcome, Settings, Updates and Jobs windows, the About panel and quitting.
 ///
@@ -16,14 +17,19 @@ final class AppCoordinator {
     private var jobsWindow: NSWindow?
     private var updateWindow: NSWindow?
     private let onboarding: OnboardingViewModel
-    /// `nil` in the App Store edition, where the store handles updates.
-    private let updateViewModel: UpdateViewModel?
+    private let updateViewModel: UpdateViewModel
+    private let opener: any URLOpening
+    private let settingsNavigation = SettingsNavigation()
+    private lazy var settingsModel = settingsFactory.makeViewModel()
+    private lazy var customizationModel = settingsFactory.makeCustomizationViewModel()
+    private lazy var keysModel = keySettingsFactory.makeViewModel()
 
     init(
         settingsFactory: SettingsFactory,
         keySettingsFactory: KeySettingsFactory,
         jobCenter: JobCenter,
-        updateViewModel: UpdateViewModel?,
+        updateViewModel: UpdateViewModel,
+        opener: any URLOpening,
         onboarding: OnboardingViewModel,
         localizer: Localizer
     ) {
@@ -32,19 +38,17 @@ final class AppCoordinator {
         self.keySettingsFactory = keySettingsFactory
         self.jobCenter = jobCenter
         self.updateViewModel = updateViewModel
+        self.opener = opener
         self.localizer = localizer
     }
 
-    /// Whether the menu offers Check for Updates (not in the App Store edition).
-    var supportsUpdateChecks: Bool { updateViewModel != nil }
-
+    /// Checks now and shows the result; the download opens the release page or the App Store.
     func showUpdates() {
-        guard let updateViewModel else { return }
         if updateWindow == nil {
             let viewModel = updateViewModel
             let root = AppLocalizedRoot(localizer: localizer) { [weak self] in
-                UpdateView(viewModel: viewModel, openRelease: {
-                    if let url = GitHubUpdateChecker.releasesURL { NSWorkspace.shared.open(url) }
+                UpdateView(viewModel: viewModel, openDownload: {
+                    self?.opener.open(viewModel.downloadURL)
                 }, dismiss: { self?.updateWindow?.close() })
             }
             let window = AppWindow.make(contentViewController: NSHostingController(rootView: root),
@@ -58,6 +62,13 @@ final class AppCoordinator {
     }
 
     /// Shows the Jobs window, creating it on first use.
+    /// Convert Clipboard in the menu bar; the keyboard path opens the wheel for the copied files or image.
+    var onConvertClipboard: (() -> Void)?
+
+    func convertClipboard() {
+        onConvertClipboard?()
+    }
+
     func showJobs() {
         let window = jobsWindow ?? makeJobsWindow()
         jobsWindow = window
@@ -101,7 +112,9 @@ final class AppCoordinator {
     }
 
     /// Shows the Settings window, creating it on first use.
-    func showSettings() {
+    func showSettings(tab: SettingsNavigation.Tab? = nil) {
+        settingsModel.refreshLaunchAtLoginStatus()
+        if let tab { settingsNavigation.selectedTab = tab }
         let window = settingsWindow ?? makeSettingsWindow()
         settingsWindow = window
         NSApp.activate()
@@ -110,16 +123,15 @@ final class AppCoordinator {
 
     /// Shows the standard About panel.
     func showAbout() {
-        NSApp.activate()
-        NSApp.orderFrontStandardAboutPanel(nil)
+        showSettings(tab: .about)
     }
 
     func openPrivacy() {
-        if let url = URL(string: "https://transflo.ali-fayed.com/privacy") { NSWorkspace.shared.open(url) }
+        if let url = URL(string: "https://transfloformac.ali-fayed.com/privacy") { NSWorkspace.shared.open(url) }
     }
 
     func openSupport() {
-        if let url = URL(string: "https://transflo.ali-fayed.com/support") { NSWorkspace.shared.open(url) }
+        if let url = URL(string: "https://transfloformac.ali-fayed.com/support") { NSWorkspace.shared.open(url) }
     }
 
     /// Drain cancellation before exiting, so helpers and staging are cleaned up.
@@ -132,13 +144,22 @@ final class AppCoordinator {
     }
 
     private func makeSettingsWindow() -> NSWindow {
-        let viewModel = settingsFactory.makeViewModel()
-        let keys = keySettingsFactory.makeViewModel()
-        let customization = settingsFactory.makeCustomizationViewModel()
+        let viewModel = settingsModel
+        let keys = keysModel
+        let customization = customizationModel
+        let catalog = settingsFactory.makeCatalogViewModel()
+        let navigation = settingsNavigation
         let tools = settingsFactory.makeToolPreferencesViewModel()
         let wheel = settingsFactory.makeWheelVisibilityViewModel()
-        let root = AppLocalizedRoot(localizer: localizer) {
-            SettingsView(viewModel: viewModel, keys: keys, customization: customization, tools: tools, wheel: wheel)
+        let updates = settingsFactory.makeUpdateSettingsViewModel()
+        let recipes = settingsFactory.makeRecipesViewModel()
+        let watchFolders = settingsFactory.makeWatchFolders?()
+        let root = AppLocalizedRoot(localizer: localizer) { [weak self] in
+            SettingsView(viewModel: viewModel, keys: keys, customization: customization, tools: tools, wheel: wheel,
+                         updates: updates, catalog: catalog, recipes: recipes, watchFolders: watchFolders,
+                         checkForUpdates: { self?.showUpdates() },
+                         openPrivacy: { self?.openPrivacy() }, openSupport: { self?.openSupport() },
+                         navigation: navigation)
         }
         let host = NSHostingController(rootView: root)
         host.sizingOptions = [.intrinsicContentSize, .preferredContentSize]

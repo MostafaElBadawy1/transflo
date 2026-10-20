@@ -15,9 +15,10 @@ struct JobsView: View {
                         ForEach(viewModel.rows) { row in
                             AppJobRow(
                                 ring: row.ring, title: row.operation, detail: row.files, status: row.status,
-                                isFailed: row.isFailed,
+                                isFailed: row.isFailed, timeLeft: row.timeLeft,
                                 onCancel: row.canCancel ? { viewModel.cancel(row.id) } : nil,
-                                onReveal: row.canReveal ? { viewModel.reveal(row.id) } : nil
+                                onReveal: row.canReveal ? { viewModel.reveal(row.id) } : nil,
+                                onUndo: row.canUndo ? { viewModel.undo(row.id) } : nil
                             )
                             if row.id != viewModel.rows.last?.id { SettingsDivider() }
                         }

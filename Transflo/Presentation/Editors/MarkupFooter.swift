@@ -6,14 +6,20 @@ struct MarkupFooter: View {
     let canUndo: Bool
     let onUndo: () -> Void
     let onClear: () -> Void
+    var canClear: Bool?
+    var canRedo = false
+    var onRedo: () -> Void = {}
 
     var body: some View {
-        HStack(spacing: AppDimensions.Spacing.small) {
+        VStack(alignment: .leading, spacing: AppDimensions.Spacing.small) {
             AppText(hint, style: .caption, color: .secondary)
-            Spacer()
-            AppButton(key: .editorUndo, variant: .tertiary, isEnabled: canUndo,
-                      shortcut: KeyboardShortcut("z", modifiers: .command), action: onUndo)
-            AppButton(key: .editorClear, variant: .tertiary, isEnabled: canUndo, action: onClear)
+            HStack {
+                AppButton(key: .editorUndo, variant: .tertiary, isEnabled: canUndo,
+                          shortcut: KeyboardShortcut("z", modifiers: .command), action: onUndo)
+                AppButton(key: .editorRedo, variant: .tertiary, isEnabled: canRedo,
+                          shortcut: KeyboardShortcut("z", modifiers: [.command, .shift]), action: onRedo)
+                AppButton(key: .editorClear, variant: .tertiary, isEnabled: canClear ?? canUndo, action: onClear)
+            }
         }
     }
 }

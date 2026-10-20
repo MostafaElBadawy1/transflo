@@ -10,7 +10,10 @@ final class JobListViewModel {
         self.jobCenter = jobCenter
     }
 
-    var rows: [JobRow] { jobCenter.jobs.reversed().map(JobRow.init) }
+    var rows: [JobRow] {
+        let now = ContinuousClock.now
+        return jobCenter.jobs.reversed().map { JobRow($0, canUndo: jobCenter.canUndo($0), now: now) }
+    }
     var hasActiveJobs: Bool { jobCenter.jobs.contains { !$0.state.isFinished } }
     var hasFinishedJobs: Bool { jobCenter.jobs.contains { $0.state.isFinished } }
 
@@ -20,6 +23,10 @@ final class JobListViewModel {
 
     func reveal(_ id: UUID) {
         jobCenter.reveal(id)
+    }
+
+    func undo(_ id: UUID) {
+        jobCenter.undo(id)
     }
 
     func cancelAll() {

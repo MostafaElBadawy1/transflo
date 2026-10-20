@@ -16,6 +16,8 @@ public final class MainRunLoopTicker: Ticking {
         let timer = Timer(timeInterval: interval, repeats: true) { _ in
             MainActor.assumeIsolated { tick() }
         }
+        // A little slack lets macOS coalesce these wakeups with others, which saves energy while dragging.
+        timer.tolerance = interval * 0.1
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
     }

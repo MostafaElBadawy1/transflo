@@ -6,6 +6,8 @@ public struct WheelOption: Sendable, Equatable, Identifiable {
         case format(FormatDescriptor)
         case tool(ToolKind)
         case action(ActionKind)
+        /// Run a saved recipe (shown on the Tools wheel).
+        case recipe(Recipe)
     }
 
     public let kind: Kind
@@ -22,6 +24,7 @@ public struct WheelOption: Sendable, Equatable, Identifiable {
         case .format(let format): "format.\(format.id)"
         case .tool(let tool): "tool.\(tool)"
         case .action(let action): "action.\(action)"
+        case .recipe(let recipe): "recipe.\(recipe.id.uuidString)"
         }
     }
 }

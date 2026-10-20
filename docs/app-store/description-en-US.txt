@@ -1,0 +1,32 @@
+Your files. One little wheel.
+
+Transflo brings file conversion, focused editing tools and everyday file actions to your cursor. Start dragging files, tap a modifier key and drop on a wheel option. Finish small jobs without opening a different app for every task.
+
+CONVERT AT YOUR CURSOR
+Turn HEIC photos into JPG, switch image formats, extract audio from video, work with PDFs, and convert supported audio, video, document, spreadsheet, subtitle and archive formats. The Convert wheel shows choices that work for every file you selected.
+
+31 TOOLS, COMPACT GROUPS
+Crop, resize, rotate, adjust colors, annotate, redact, remove or add a background, and arrange a collage. Related tools share one entry, keeping the wheel easy to scan. Hover or click a group, then choose your tool. Back navigation includes a short pause to give your pointer time to move.
+
+EDIT PDF, VIDEO AND AUDIO
+Reorder, split, merge or extract PDF pages. Trim, split and merge clips, change playback speed, capture a video frame, mute audio, normalize loudness, bleep a section or convert stereo to mono. Focused editors offer previews and playback where supported.
+
+SAVE YOUR REPEAT WORK
+Create Recipes that chain conversion, resizing, compression, metadata removal and renaming. Run a saved, compatible recipe from Tools. Watch folders run your chosen recipe as files arrive. Start workflows with Shortcuts, Spotlight and Siri.
+
+PACK, UNPACK AND SEND
+Archive selected files and folders into one ZIP. Extract ZIP, RAR, TAR and GZIP into a new folder. AirDrop files, copy or move them, or copy their paths. Batch rename with patterns and a preview. Edit or remove metadata before sharing.
+
+READ AND IMPROVE IMAGES
+Extract text from images and scanned PDF pages using on-device OCR. Upscale images 2x. On supported Macs with macOS 26 and Apple Intelligence, generate image descriptions and review Smart Rename suggestions before applying them.
+
+MAKE IT YOURS
+Choose your accent, wheel size, modifier keys and visible options. Set Best, Balanced or Smaller compression defaults. Work in English or Arabic with light and dark appearance, right-to-left layout, VoiceOver, optional haptics and tick sounds. Preferences stay saved between launches.
+
+LOCAL BY DESIGN
+File processing runs on your Mac. No account, advertising or app analytics. Choose which folders Transflo can access. Conversions and edits create new outputs; Rename and Move apply the changes you request. Follow, cancel or reveal work in the Jobs window. AirDrop shares files only when you choose it. The update check contacts the App Store for version information; it does not send your files.
+
+Transflo is free and open source under the MIT License. Requires macOS 14 or later on Apple silicon. Available options depend on your files and Mac. Very small compression targets may require lower quality or dimensions.
+
+Support: https://transfloformac.ali-fayed.com/support
+Privacy: https://transfloformac.ali-fayed.com/privacy

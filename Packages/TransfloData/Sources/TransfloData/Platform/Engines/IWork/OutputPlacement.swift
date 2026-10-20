@@ -14,7 +14,9 @@ struct OutputPlacement {
         let manager = FileManager.default
         do {
             if ordered.count == 1 {
-                try manager.moveItem(at: ordered[0], to: request.destination)
+                try OutputFile.write(to: request.destination) { staged throws(JobError) in
+                    do { try manager.copyItem(at: ordered[0], to: staged) } catch { throw .destinationUnavailable }
+                }
                 return [request.destination]
             }
             let folder = try makeFolder(for: request)

@@ -1,24 +1,22 @@
 import TransfloDomain
 
-/// The four choices shown in instant-tool preferences.
+/// The three preset defaults available in General.
 enum CompressionChoice: Hashable {
-    case light, medium, strong, target
+    case light, medium, strong
 
     init(_ goal: CompressionGoal) {
         switch goal {
         case .level(.light): self = .light
-        case .level(.medium): self = .medium
         case .level(.strong): self = .strong
-        case .targetBytes: self = .target
+        case .level(.medium), .targetBytes, .percentage: self = .medium
         }
     }
 
-    func goal(megabytes: Double) -> CompressionGoal {
+    var goal: CompressionGoal {
         switch self {
-        case .light: .level(.light)
-        case .medium: .level(.medium)
-        case .strong: .level(.strong)
-        case .target: .targetBytes(Int64(megabytes * 1_000_000))
+        case .light: .light
+        case .medium: .medium
+        case .strong: .strong
         }
     }
 }

@@ -7,6 +7,9 @@ enum SettingsStorageKey {
     static let nameStyle = "settings.nameStyle"
     static let customization = "settings.customization"
     static let wheelVisibility = "settings.wheelVisibility"
+    static let wheelUsage = "settings.wheelUsage"
+    static let recipes = "settings.recipes"
+    static let watchFolders = "settings.watchFolders"
     static let language = "settings.language"
     static let appearance = "settings.appearance"
 }

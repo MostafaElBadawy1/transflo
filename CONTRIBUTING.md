@@ -19,7 +19,10 @@ run separately through `scripts/capture-screenshots.sh`.
 
 Do not include credentials, signing assets, personal file paths, private user
 files, generated projects, build products, or third-party reference artwork.
-Use synthetic fixtures and the isolated test preference store.
+Use synthetic fixtures and the isolated test preference store. Keep personal planning,
+per-release account activity and private audit journals in the ignored `.local-notes/`
+folder. Public documentation should explain reproducible setup and behavior; use
+anonymized examples rather than personal usernames or machine paths.
 
 See [SECURITY.md](SECURITY.md) for vulnerability reports and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for bundled software notices.

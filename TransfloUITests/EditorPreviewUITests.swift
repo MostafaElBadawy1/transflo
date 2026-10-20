@@ -19,15 +19,51 @@ final class EditorPreviewUITests: TransfloUITestCase {
 
     func testAdjustEditorInArabicDark() {
         let window = editor("adjust", language: "ar", appearance: "dark")
+        XCUIApplication().activate()
         XCTAssertTrue(window.staticTexts["التعريض"].waitForExistence(timeout: 5))
+        window.sliders["التعريض"].adjust(toNormalizedSliderPosition: 0.7)
+        XCTAssertTrue(window.buttons["transflo.adjust.reset.editor.exposure"].isEnabled)
         attachDiagnosticScreenshot(window, named: "editor-adjust-ar-dark")
+    }
+
+    func testCompressionModesAndImageSize() {
+        let window = editor("compress", language: "en", appearance: "light")
+        XCUIApplication().activate()
+        let compress = window.buttons["Compress"]
+        XCTAssertTrue(compress.waitForExistence(timeout: 5))
+        window.buttons["Percentage"].click()
+        XCTAssertTrue(window.buttons["Percentage"].isSelected)
+        window.buttons["1280 px"].click()
+        XCTAssertTrue(window.buttons["1280 px"].isSelected)
+        XCTAssertTrue(compress.isEnabled)
+        attachDiagnosticScreenshot(window, named: "editor-compress-en-light")
+        window.buttons["transflo.chip.compression.target"].click()
+        XCTAssertTrue(window.textFields["transflo.compression.target"].exists)
+        XCTAssertTrue(compress.isHittable)
+    }
+
+    func testRotateAndMirrorControlsInBothLanguages() {
+        for (language, appearance, reset, mirror) in [
+            ("en", "light", "Reset", "Mirror horizontally"), ("ar", "dark", "إعادة تعيين", "انعكاس أفقي")
+        ] {
+            let window = editor("rotate", language: language, appearance: appearance)
+            XCUIApplication().activate()
+            let apply = window.buttons["transflo.editor.apply"]
+            XCTAssertTrue(apply.waitForExistence(timeout: 5))
+            window.buttons[reset].click()
+            XCTAssertFalse(apply.isEnabled)
+            let checkbox = window.checkBoxes[mirror]
+            (checkbox.exists ? checkbox : window.switches[mirror]).click()
+            XCTAssertTrue(apply.isEnabled)
+            XCTAssertLessThanOrEqual(apply.frame.maxY, window.frame.maxY)
+        }
     }
 
     func testAnnotateEditorInEnglishLight() {
         let window = editor("annotate", language: "en", appearance: "light")
-        XCTAssertTrue(window.radioButtons["Arrow"].waitForExistence(timeout: 5))
+        XCTAssertTrue(window.buttons["Arrow"].waitForExistence(timeout: 5))
         XCTAssertTrue(window.buttons["Teal"].exists)
-        XCTAssertFalse(window.buttons["Apply"].isEnabled)
+        XCTAssertFalse(window.buttons["transflo.editor.apply"].isEnabled)
         attachDiagnosticScreenshot(window, named: "editor-annotate-en-light")
     }
 
@@ -40,7 +76,7 @@ final class EditorPreviewUITests: TransfloUITestCase {
     func testCollageEditorInEnglishLight() {
         let window = editor("collage", language: "en", appearance: "light")
         XCTAssertTrue(window.staticTexts["Columns"].waitForExistence(timeout: 5))
-        XCTAssertTrue(window.buttons["Apply"].isEnabled)
+        XCTAssertTrue(window.buttons["transflo.editor.apply"].isEnabled)
         attachDiagnosticScreenshot(window, named: "editor-collage-en-light")
     }
 
@@ -62,7 +98,7 @@ final class EditorPreviewUITests: TransfloUITestCase {
         let clickable = expectation(for: NSPredicate(format: "isHittable == true"), evaluatedWith: page)
         wait(for: [clickable], timeout: 10)
         page.click()
-        XCTAssertTrue(window.buttons["تطبيق"].isEnabled)
+        XCTAssertTrue(window.buttons["transflo.editor.apply"].isEnabled)
         attachDiagnosticScreenshot(window, named: "editor-extract-ar-light")
     }
 
@@ -93,7 +129,7 @@ final class EditorPreviewUITests: TransfloUITestCase {
         XCTAssertTrue(portrait.isSelected)
         XCTAssertTrue(window.textFields["Width"].exists)
         XCTAssertTrue(window.textFields["Height"].exists)
-        XCTAssertTrue(window.buttons["Apply"].isEnabled)
+        XCTAssertTrue(window.buttons["transflo.editor.apply"].isEnabled)
         XCTAssertTrue(window.buttons["Square"].exists)
         window.buttons["Square"].click()
         let width = window.textFields["Width"]
@@ -102,14 +138,18 @@ final class EditorPreviewUITests: TransfloUITestCase {
         width.typeText("120")
         XCUIApplication().typeKey(.tab, modifierFlags: [])
         XCTAssertEqual(window.textFields["Height"].value as? String, "120")
+        let scroll = window.scrollViews.firstMatch
+        for _ in 0..<4 where !window.buttons["Reset"].isHittable {
+            scroll.scroll(byDeltaX: 0, deltaY: -180)
+        }
         window.buttons["Reset"].click()
         XCTAssertTrue(window.buttons["Free"].isSelected)
-        XCTAssertFalse(window.buttons["Apply"].isEnabled)
+        XCTAssertFalse(window.buttons["transflo.editor.apply"].isEnabled)
         width.click()
         XCUIApplication().typeKey("a", modifierFlags: .command)
         width.typeText("abc")
         XCUIApplication().typeKey(.tab, modifierFlags: [])
-        XCTAssertFalse(window.buttons["Apply"].isEnabled)
+        XCTAssertFalse(window.buttons["transflo.editor.apply"].isEnabled)
         attachDiagnosticScreenshot(window, named: "editor-crop-pixels-en-light")
     }
 
@@ -118,7 +158,7 @@ final class EditorPreviewUITests: TransfloUITestCase {
         XCUIApplication().activate()
         XCTAssertTrue(window.buttons["4:5"].waitForExistence(timeout: 5))
         window.buttons["4:5"].click()
-        XCTAssertTrue(window.buttons["تطبيق"].isEnabled)
+        XCTAssertTrue(window.buttons["transflo.editor.apply"].isEnabled)
         attachDiagnosticScreenshot(window, named: "editor-crop-pixels-ar-dark")
     }
     func testBeautifyControlsAndLivePreview() {

@@ -21,6 +21,7 @@ struct AppAccentPicker: View {
                             .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .appFocusRing(Circle())
                     .accessibilityLabel(localizer.string(preset.name))
                     .accessibilityAddTraits(selection == preset.hex ? .isSelected : [])
                     .help(localizer.string(preset.name))

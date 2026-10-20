@@ -36,12 +36,16 @@ struct ConversionFactory {
         }
     }
 
+    /// Files one batch converts at once: up to four, leaving cores for the rest of the Mac.
+    static let parallelFiles = min(4, max(1, ProcessInfo.processInfo.activeProcessorCount / 2))
+
     func makeRunner() -> ConversionJobRunner {
         ConversionJobRunner(
             catalog: catalog,
             engines: engines,
             naming: NameOutputFileUseCase(checker: FileManagerExistenceChecker()),
-            remover: FileManagerFileRemover()
+            remover: FileManagerFileRemover(),
+            maximumConcurrentItems: Self.parallelFiles
         )
     }
 }

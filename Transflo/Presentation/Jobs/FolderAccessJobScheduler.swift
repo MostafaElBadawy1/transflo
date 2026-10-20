@@ -41,7 +41,7 @@ final class FolderAccessJobScheduler: JobScheduling {
     /// The other actions only read the files or hand them to the system.
     static func writesBesideOriginals(_ option: WheelOption) -> Bool {
         switch option.kind {
-        case .format, .tool, .action(.move): true
+        case .format, .tool, .recipe, .action(.move), .action(.archive): true
         case .action: false
         }
     }

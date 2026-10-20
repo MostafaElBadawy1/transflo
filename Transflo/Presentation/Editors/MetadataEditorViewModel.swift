@@ -9,16 +9,24 @@ final class MetadataEditorViewModel: ToolEditorModel {
     var title = ""
     var author = ""
     var comment = ""
+    private(set) var detected: [MetadataEntry] = []
+    @ObservationIgnored private let inspector: (any ToolInspectionProviding)?
     @ObservationIgnored private var original: [MetadataField: String] = [:]
 
     @ObservationIgnored private let item: URL
     @ObservationIgnored private let format: FormatDescriptor?
     @ObservationIgnored private let reader: any ToolMetadataReading
 
-    init(item: URL, format: FormatDescriptor?, reader: any ToolMetadataReading) {
+    init(
+        item: URL,
+        format: FormatDescriptor?,
+        reader: any ToolMetadataReading,
+        inspector: (any ToolInspectionProviding)? = nil
+    ) {
         self.item = item
         self.format = format
         self.reader = reader
+        self.inspector = inspector
     }
 
     var fileName: String { item.lastPathComponent }
@@ -37,11 +45,19 @@ final class MetadataEditorViewModel: ToolEditorModel {
         return .metadata(changes)
     }
 
+    func restore() {
+        title = original[.title, default: ""]
+        author = original[.author, default: ""]
+        comment = original[.comment, default: ""]
+    }
+    func clear() { title = ""; author = ""; comment = "" }
+
     func load() async {
         original = await reader.metadata(of: item, format: format)
         title = original[.title, default: ""]
         author = original[.author, default: ""]
         comment = original[.comment, default: ""]
+        detected = (try? await inspector?.metadata(in: item)) ?? []
         isLoaded = true
     }
 }

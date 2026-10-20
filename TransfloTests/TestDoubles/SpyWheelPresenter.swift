@@ -5,6 +5,7 @@ import TransfloDomain
 final class SpyWheelPresenter: WheelPresenting {
     var onHover: ((WheelPoint?) -> Bool)?
     var onDrop: ((WheelPoint) -> Bool)?
+    var onPromisedDrop: ((WheelPoint, @escaping PromisedFileDelivery) -> Bool)?
     var onKey: ((WheelKeyCommand) -> Void)?
     var onClick: ((WheelPoint) -> Bool)?
     var onPointer: ((WheelPoint) -> Void)?

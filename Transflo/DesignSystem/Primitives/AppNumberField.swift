@@ -11,10 +11,14 @@ struct AppNumberField: View {
 
     var body: some View {
         HStack(spacing: AppDimensions.Spacing.small) {
+            // The label keeps its width before the spacer gives any up, so it never wraps word by word.
             AppText(label)
-            Spacer()
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
+            Spacer(minLength: AppDimensions.Spacing.small)
             TextField(localizer.string(label), value: clamped, format: .number)
                 .textFieldStyle(.roundedBorder)
+                .appFocusRing(RoundedRectangle(cornerRadius: AppDimensions.Radius.small))
                 .multilineTextAlignment(.trailing)
                 .frame(width: AppDimensions.Editor.fieldWidth)
                 .labelsHidden()

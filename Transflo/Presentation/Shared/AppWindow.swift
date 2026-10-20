@@ -10,6 +10,11 @@ enum AppWindow {
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
         window.identifier = NSUserInterfaceItemIdentifier(identifier)
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains(LaunchArgument.screenshotCapture) {
+            window.level = .popUpMenu
+        }
+        #endif
         window.center()
         return window
     }

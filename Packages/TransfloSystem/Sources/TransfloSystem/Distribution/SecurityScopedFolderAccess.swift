@@ -27,7 +27,9 @@ public final class SecurityScopedFolderAccess: FolderAccessProviding {
     private var bookmarks: [Data]
 
     /// Resolves the stored bookmarks and starts accessing them for the app's lifetime.
-    public init(defaults: UserDefaults, copy: @escaping () -> Copy) {
+    /// - Parameter entitledFolders: Folders the sandbox already allows (such as Downloads); they count
+    ///   as granted without asking and are never stored as bookmarks.
+    public init(defaults: UserDefaults, entitledFolders: [URL] = [], copy: @escaping () -> Copy) {
         self.defaults = defaults
         self.copy = copy
         bookmarks = []
@@ -35,6 +37,7 @@ public final class SecurityScopedFolderAccess: FolderAccessProviding {
             if let folder = Self.resolve(bookmark) { remember(folder, bookmark: bookmark) }
         }
         save()
+        entitledFolders.forEach { granted.add($0) }
     }
 
     public func requestAccess(to folder: URL) async -> Bool {

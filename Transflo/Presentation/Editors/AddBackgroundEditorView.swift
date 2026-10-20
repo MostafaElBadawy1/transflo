@@ -21,6 +21,8 @@ struct AddBackgroundEditorView: View {
                 AppText(.editorBackground, style: .headline)
                 AppPresetGrid(fill: model.style.fill) { preset in model.update { $0.fill = .gradient(preset) } }
                 AppColorSwatches(selection: $model.color)
+                AppCustomColorPicker(selection: $model.color)
+                AppChipGroup(key: .editorComposition, selection: composition, options: Self.compositions)
                 AppSlider(label: .beautifyPadding, value: value(\.padding),
                           range: TransfloDomain.BackgroundStyle.paddingRange,
                           valueText: percentage(model.style.padding))
@@ -43,6 +45,14 @@ struct AddBackgroundEditorView: View {
         .onDisappear { model.cancelPreview() }
     }
 
+    private var composition: Binding<Int> {
+        Binding(get: { model.composition }, set: { model.applyComposition($0) })
+    }
+    private static let compositions: [AppSegmentedPicker<Int>.Option] = [
+        .init(value: 0, label: .editorMinimal), .init(value: 1, label: .editorBalanced),
+        .init(value: 2, label: .editorSpacious)
+    ]
+
     private func value(_ keyPath: WritableKeyPath<TransfloDomain.BackgroundStyle, Double>) -> Binding<Double> {
         Binding(get: { model.style[keyPath: keyPath] }, set: { value in
             model.update { $0[keyPath: keyPath] = value }
@@ -56,6 +66,8 @@ struct AddBackgroundEditorView: View {
     private static let ratios: [AppSegmentedPicker<BackgroundCanvasRatio>.Option] = [
         .init(value: .automatic, label: .beautifyAuto), .init(value: .square, label: .aspectSquare),
         .init(value: .sixteenNine, label: .aspectSixteenNine), .init(value: .fourFive, label: .aspectFourFive),
-        .init(value: .nineSixteen, label: .aspectNineSixteen)
+        .init(value: .nineSixteen, label: .aspectNineSixteen),
+        .init(value: .fourThree, label: .aspectFourThree), .init(value: .threeFour, label: .aspectThreeFour),
+        .init(value: .threeTwo, label: .aspectThreeTwo), .init(value: .twoThree, label: .aspectTwoThree)
     ]
 }

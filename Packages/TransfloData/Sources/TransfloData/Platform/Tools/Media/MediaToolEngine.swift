@@ -22,6 +22,7 @@ public struct MediaToolEngine: ToolEngine {
 
     public func canRun(_ tool: ToolKind, on formats: [FormatDescriptor?]) -> Bool {
         guard ffmpeg != nil, Self.tools.contains(tool), !formats.isEmpty else { return false }
+        if [.normalize, .channels].contains(tool), ffprobe == nil { return false }
         let ids = formats.map { $0?.id.rawValue ?? "" }
         if tool == .merge {
             let sameKind = ids.allSatisfy(FFmpegToolArguments.videoFormats.contains)
@@ -43,13 +44,23 @@ public struct MediaToolEngine: ToolEngine {
         progress: @escaping @Sendable (Double) -> Void
     ) async throws(JobError) -> [URL] {
         guard let ffmpeg else { throw .unsupported }
-        if case .compress(.targetBytes(let bytes)) = request.settings {
-            return try await MediaTargetCompressor(ffmpeg: ffmpeg, ffprobe: ffprobe, naming: naming)
-                .run(request, target: bytes, progress: progress)
+        if case .compress(let goal) = request.settings {
+            if case .level = goal {} else {
+                return try await MediaTargetCompressor(ffmpeg: ffmpeg, ffprobe: ffprobe, naming: naming)
+                    .run(request, goal: goal, progress: progress)
+            }
         }
         if request.tool == .merge {
-            return [try await merge(request.items, ffmpeg: ffmpeg, progress: progress)]
+            let items: [ToolItem]
+            if case .assemble(let assembly) = request.settings {
+                guard let ordered = assembly.ordered(request.items) else { throw .unsupported }
+                items = ordered
+            } else { items = request.items }
+            return [try await merge(items, ffmpeg: ffmpeg, progress: progress)]
         }
+        let validatedSettings: ToolSettings = request.tool == .normalize && request.settings == .none
+            ? .normalize(LoudnessSettings()) : request.settings
+        try await ToolPreflight.media(request.items, settings: validatedSettings, ffprobe: ffprobe)
         var outputs: [URL] = []
         do throws(JobError) {
             for (index, item) in request.items.enumerated() {
@@ -79,6 +90,20 @@ public struct MediaToolEngine: ToolEngine {
     ) async throws(JobError) -> [MediaToolStep] {
         let source = item.url.path
         let format = item.format?.id.rawValue ?? ""
+        if tool == .normalize {
+            let target: LoudnessSettings
+            if case .normalize(let value) = settings { target = value } else { target = LoudnessSettings() }
+            guard let ffmpeg else { throw .unsupported }
+            let measured = try await LoudnessProcessor.measure(item.url, target: target, ffmpeg: ffmpeg)
+            guard let arguments = LoudnessProcessor.arguments(target, measured: measured, format: format) else {
+                throw .unsupported
+            }
+            return [MediaToolStep(arguments: ["-i", source] + arguments, fileExtension: nil)]
+        }
+        if tool == .removeMetadata, case .removeMetadata(let categories) = settings {
+            return [MediaToolStep(arguments: ["-i", source]
+                + (try await metadataArguments(item.url, categories: categories)), fileExtension: nil)]
+        }
         if let instant = arguments(for: tool, settings: settings, format: format) {
             return [MediaToolStep(arguments: ["-i", source] + instant, fileExtension: nil)]
         }
@@ -91,7 +116,7 @@ public struct MediaToolEngine: ToolEngine {
 
     private static func needsProbe(_ settings: ToolSettings) -> Bool {
         switch settings {
-        case .crop, .changeSpeed, .split, .bleep, .snapshot: true
+        case .crop, .changeSpeed, .split, .bleep, .snapshot, .snapshotJPEG: true
         default: false
         }
     }
@@ -108,12 +133,20 @@ public struct MediaToolEngine: ToolEngine {
             FFmpegToolArguments.rotate(format, quarterTurns: turns, flipHorizontal: flipH, flipVertical: flipV)
         case (.mute, _): FFmpegToolArguments.mute(format)
         case (.normalize, _): FFmpegToolArguments.normalize(format)
+        case (.channels, .channels(let mix)): FFmpegToolArguments.mono(format, mix: mix)
         case (.channels, _): FFmpegToolArguments.mono(format)
         case (.removeMetadata, _):
             FFmpegToolArguments.videoFormats.union(FFmpegToolArguments.audioFormats).contains(format)
                 ? FFmpegToolArguments.stripMetadata : nil
         default: nil
         }
+    }
+
+    private func metadataArguments(_ url: URL, categories: Set<MetadataCategory>) async throws(JobError) -> [String] {
+        if categories == Set(MetadataCategory.allCases) { return FFmpegToolArguments.stripMetadata }
+        let info = try await probe(url)
+        let removed = info.tags.keys.filter { categories.contains(MetadataFiltering.category($0)) }.sorted()
+        return ["-map", "0", "-c", "copy"] + removed.flatMap { ["-metadata", "\($0)=", "-metadata:s", "\($0)="] }
     }
 
     private func merge(

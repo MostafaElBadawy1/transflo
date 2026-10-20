@@ -5,8 +5,8 @@ import TransfloDomainTestSupport
 
 @Suite("Actions")
 struct ActionTests {
-    private let file = URL(fileURLWithPath: "/Users/ali/Desktop/photo.heic")
-    private let folder = URL(fileURLWithPath: "/Users/ali/Projects/", isDirectory: true)
+    private let file = URL(fileURLWithPath: "/Users/example/Desktop/photo.heic")
+    private let folder = URL(fileURLWithPath: "/Users/example/Projects/", isDirectory: true)
     private let home = URL(fileURLWithPath: "/Users/ali", isDirectory: true)
 
     private func runner(_ performers: [ActionKind: any FileActionPerforming], existing: [URL]? = nil)
@@ -64,7 +64,7 @@ struct ActionTests {
         _ = try await CopyPathAction(copier: copier, modifiers: StubModifierState(optionPressed: true), home: home)
             .perform(on: [file, outside, home], settings: nil)
         #expect(copier.copied == [
-            "/Users/ali/Desktop/photo.heic\n/Volumes/Disk/a b.txt",
+            "/Users/example/Desktop/photo.heic\n/Volumes/Disk/a b.txt",
             "~/Desktop/photo.heic\n/Volumes/Disk/a b.txt\n~"
         ])
     }
@@ -78,9 +78,9 @@ struct ActionTests {
 
     @Test("terminal opens folders as themselves and files as their folder, once each")
     func terminalFolders() {
-        let other = URL(fileURLWithPath: "/Users/ali/Desktop/notes.txt")
+        let other = URL(fileURLWithPath: "/Users/example/Desktop/notes.txt")
         let folders = TerminalFolders.folders(for: [file, folder, other], isDirectory: \.hasDirectoryPath)
-        #expect(folders.map(\.path) == ["/Users/ali/Desktop", "/Users/ali/Projects"])
+        #expect(folders.map(\.path) == ["/Users/example/Desktop", "/Users/example/Projects"])
     }
 
     @Test("terminal uses the preferred app when installed, else the first installed one")
@@ -91,7 +91,7 @@ struct ActionTests {
         _ = try await preferGhostty.perform(on: [folder], settings: nil)
         _ = try await preferWarp.perform(on: [file], settings: nil)
         #expect(opener.received.map(\.app) == [.ghostty, .terminal])
-        #expect(opener.received.last?.folders.map(\.path) == ["/Users/ali/Desktop"])
+        #expect(opener.received.last?.folders.map(\.path) == ["/Users/example/Desktop"])
     }
 
     @Test("terminal without any installed app is unsupported")
@@ -109,8 +109,8 @@ struct ActionTests {
         let sut = MoveAction(mover: mover, recents: recents)
         await #expect(throws: JobError.unsupported) { try await sut.perform(on: [file], settings: nil) }
         let moved = try await sut.perform(on: [file], settings: .destination(folder))
-        #expect(moved.map(\.path) == ["/Users/ali/Projects/photo.heic"])
-        #expect(recents.load().map(\.path) == ["/Users/ali/Projects", "/Users/ali"])
+        #expect(moved.map(\.path) == ["/Users/example/Projects/photo.heic"])
+        #expect(recents.load().map(\.path) == ["/Users/example/Projects", "/Users/ali"])
     }
 
     @Test("a failed move leaves the recent folders alone")

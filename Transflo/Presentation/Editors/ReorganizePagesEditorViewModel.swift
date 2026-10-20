@@ -35,9 +35,11 @@ final class ReorganizePagesEditorViewModel: ToolEditorModel {
 
     /// Moves the rows at `offsets` to before `destination`, as a list drag reports it.
     func move(from offsets: IndexSet, to destination: Int) {
-        let moving = offsets.sorted().map { order[$0] }
-        var remaining = order.indices.filter { !offsets.contains($0) }.map { order[$0] }
-        remaining.insert(contentsOf: moving, at: destination - offsets.filter { $0 < destination }.count)
+        let safe = offsets.filter { order.indices.contains($0) }
+        let destination = min(max(destination, 0), order.count)
+        let moving = safe.sorted().map { order[$0] }
+        var remaining = order.indices.filter { !safe.contains($0) }.map { order[$0] }
+        remaining.insert(contentsOf: moving, at: destination - safe.filter { $0 < destination }.count)
         order = remaining
     }
 
@@ -45,6 +47,12 @@ final class ReorganizePagesEditorViewModel: ToolEditorModel {
     func remove(page: Int) {
         guard order.count > 1 else { return }
         order.removeAll { $0 == page }
+    }
+
+    func reverse() { order.reverse() }
+    func movePage(_ page: Int, by delta: Int) {
+        guard let index = order.firstIndex(of: page), order.indices.contains(index + delta) else { return }
+        order.swapAt(index, index + delta)
     }
 
     func reset() {

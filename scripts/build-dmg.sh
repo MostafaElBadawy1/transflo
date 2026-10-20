@@ -5,17 +5,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP=""
 OUTPUT_DIR="$ROOT/build/releases"
-STYLE=adaptive
 WORKSPACE=""
 MOUNT_POINT=""
 
 usage() {
   cat <<'HELP'
 Usage: scripts/build-dmg.sh [--app /path/to/Transflo.app] [--output-dir /path/to/folder]
-                            [--style adaptive|branded]
 
 Without --app, builds Transflo in Release using temporary build storage.
-Adaptive (default) follows the system light/dark appearance. Branded uses a fixed illustrated background.
+The installer window shows Transflo's dark illustrated design (Finder keeps it the same in light and dark mode).
 The finished DMG is saved in build/releases by default. Existing installers are never overwritten.
 HELP
 }
@@ -32,11 +30,6 @@ while [[ $# -gt 0 ]]; do
     --app|--output-dir)
       [[ $# -ge 2 && -n "$2" ]] || fail "$1 needs a path"
       if [[ "$1" == --app ]]; then APP="$2"; else OUTPUT_DIR="$2"; fi
-      shift 2 ;;
-    --style)
-      [[ $# -ge 2 ]] || fail "--style needs adaptive or branded"
-      [[ "$2" == adaptive || "$2" == branded ]] || fail "--style must be adaptive or branded"
-      STYLE="$2"
       shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; fail "unknown option: $1" ;;
@@ -102,12 +95,9 @@ cp "$ROOT/THIRD_PARTY_NOTICES.md" "$STAGING/.Licenses/Third-Party-Notices.md"
 # The build log records absolute paths; publish it without the local checkout location.
 sed "s|$ROOT|<repo>|g" "$ROOT/Vendor/ffmpeg/BUILDINFO.txt" > "$STAGING/.Licenses/FFmpeg-BuildInfo.txt"
 cp "$ROOT/Vendor/ffmpeg/checksums.txt" "$STAGING/.Licenses/FFmpeg-Checksums.txt"
-VOLUME_NAME="Drag Transflo to Applications"
-if [[ "$STYLE" == branded ]]; then
-  VOLUME_NAME="Install Transflo"
-  swift -module-cache-path "$WORKSPACE/SwiftModuleCache" "$ROOT/scripts/dmg/render-background.swift" \
-    "$STAGING/.background/installer.png"
-fi
+VOLUME_NAME="Install Transflo"
+swift -module-cache-path "$WORKSPACE/SwiftModuleCache" "$ROOT/scripts/dmg/render-background.swift" \
+  "$STAGING/.background/installer.png"
 
 # Configure Finder on a writable image so background aliases reference the final volume, not staging.
 WRITABLE="$WORKSPACE/Transflo-writable.dmg"
@@ -115,7 +105,7 @@ hdiutil create -volname "$VOLUME_NAME" -srcfolder "$STAGING" -fs HFS+ -format UD
 MOUNT_POINT="$WORKSPACE/volume"
 mkdir "$MOUNT_POINT"
 hdiutil attach "$WRITABLE" -nobrowse -mountpoint "$MOUNT_POINT" -quiet
-"$DESIGN_PYTHON" "$ROOT/scripts/dmg/configure-finder.py" "$MOUNT_POINT" "$STYLE"
+"$DESIGN_PYTHON" "$ROOT/scripts/dmg/configure-finder.py" "$MOUNT_POINT"
 # Give the mounted volume Transflo's icon. Finder layout metadata selects icon view.
 /usr/bin/xattr -wx com.apple.FinderInfo '0000000000000000040000000000000000000000000000000000000000000000' "$MOUNT_POINT"
 hdiutil detach "$MOUNT_POINT" -quiet

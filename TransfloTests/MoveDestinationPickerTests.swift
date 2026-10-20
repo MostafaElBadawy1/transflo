@@ -8,7 +8,7 @@ import TransfloDomainTestSupport
 struct MoveDestinationPickerTests {
     @Test("only Move needs a choice, and only folders that still exist are offered")
     func destinations() {
-        let kept = URL(fileURLWithPath: "/Users/ali/Projects/", isDirectory: true)
+        let kept = URL(fileURLWithPath: "/Users/example/Projects/", isDirectory: true)
         let gone = URL(fileURLWithPath: "/Volumes/Unplugged")
         let sut = MoveDestinationPicker(
             recents: InMemoryRecentFolders([gone, kept]),

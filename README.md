@@ -7,27 +7,49 @@
 <p align="center">
   <strong>Your files, transformed at your cursor.</strong><br>
   Drag a file, tap a key, drop it on the wheel: convert, edit or send it without opening another app.<br>
-  Free and open source for macOS. File processing runs on your Mac.<br>
-  <a href="https://transflo.ali-fayed.com">transflo.ali-fayed.com</a>
+  Free and open source for macOS. File processing runs on your Mac.
 </p>
 
 <p align="center">
-  <a href="https://github.com/Ali-Fayed/transflo/releases/latest"><img alt="Download" src="https://img.shields.io/github/v/release/Ali-Fayed/transflo?label=download&color=1f6f63"></a>
+  <a href="https://transfloformac.ali-fayed.com"><img alt="Visit the website" src="https://img.shields.io/badge/Visit_the_website-transfloformac.ali--fayed.com-1f6f63?style=for-the-badge"></a>
+  <a href="https://github.com/Ali-Fayed/transflo/releases/latest"><img alt="Download for Mac" src="https://img.shields.io/github/v/release/Ali-Fayed/transflo?label=Download%20for%20Mac&style=for-the-badge&color=2b2b2b"></a>
+</p>
+
+<p align="center">
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-1f6f63">
   <img alt="Apple silicon" src="https://img.shields.io/badge/Apple%20silicon-native-1f6f63">
+  <img alt="English and Arabic" src="https://img.shields.io/badge/languages-English%20%26%20Arabic-1f6f63">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-1f6f63"></a>
 </p>
 
 <p align="center">
-  <img src="docs/media/transflo-demo.webp" width="720" alt="Transflo demo: drag a photo, tap Shift and drop it on JPG; the wheel folds into a disc that fills and ticks; then the three wheels, Settings › Wheel, the editors, compression, English and Arabic, and customization"><br>
-  <sub>Want it sharper? <a href="https://github.com/Ali-Fayed/transflo/raw/main/docs/media/transflo-promo.mp4">Download the 1080p video</a> (16 MB).</sub>
+  <a href="https://transfloformac.ali-fayed.com">Website</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#what-it-can-do">Features</a> ·
+  <a href="#private-by-design">Privacy</a> ·
+  <a href="#how-its-built">How it's built</a>
 </p>
 
-## Transflo Wheel
+<p align="center">
+  <img src="docs/media/transflo-demo.webp" width="100%" alt="Transflo demo: drag a photo, tap Shift and drop it on JPG; the wheel folds into a disc that fills and ticks; then the three wheels, Settings › Wheel, the editors, compression, English and Arabic, and customization"><br>
+  <sub>Want it sharper? <a href="https://github.com/Ali-Fayed/transflo/raw/main/docs/media/transflo-promo.mp4">Download the 1080p video</a> (16 MB). Explore the feature designs below, made with the current app UI.</sub>
+</p>
+
+## Features at a glance
+
+- **Convert without opening another app:** 288 conversions across images, audio, video, documents, PDF, spreadsheets, subtitles and archives.
+- **Finish small edits quickly:** 31 tools for cropping, resizing, backgrounds, markup, PDF pages, media, metadata and filenames.
+- **Read and improve images on-device:** OCR for images and scanned PDFs, 2× upscaling, plus image descriptions and Smart Rename on supported Apple Intelligence Macs.
+- **Run your own Recipes:** chain steps once, then choose the saved recipe from Tools. Watch folders can run it automatically.
+- **Pack and unpack:** archive selected files and folders into a ZIP, or extract ZIP, RAR, TAR and GZIP into a new folder.
+- **Keep the wheel focused:** related tools share compact groups; choose your wheel size, accent, shortcuts and visible options.
+- **Work locally:** no account or file uploads for processing. English and Arabic, light and dark, keyboard controls and VoiceOver.
+
+## Three wheels, one gesture
 
 <p align="center">
-  <img src="docs/screenshots/wheel-convert-en-light.png" width="420" alt="The Convert wheel">
-  <img src="docs/screenshots/wheel-convert-en-dark.png" width="420" alt="The Convert wheel in dark mode">
+  <img src="docs/features/visuals/feature-wheels.png" width="100%" alt="Drag, tap and drop: Convert, compact Tools and Actions wheels in the current app">
 </p>
 
 ---
@@ -47,10 +69,11 @@ The wheel stays open after you let go of the key, so take your time. Tap another
 
 ## What it can do
 
-### ⇧ Convert: 262 conversions
+### ⇧ Convert: 288 conversions
 | Family | Formats |
 |---|---|
 | Images | JPG · PNG · HEIC · WebP · AVIF · TIFF · BMP · GIF · SVG (in) → PDF |
+| Icons | Any image → ICO (Windows) · ICNS (macOS), and back to PNG / JPG |
 | Audio | MP3 · M4A · WAV · FLAC · OGG · Opus · AIFF · WMA |
 | Video | MP4 · MOV · MKV · WebM · AVI · WMV · animated GIF, plus audio extraction to MP3 |
 | Documents | PDF ↔ DOCX · Pages · Markdown · TXT · EPUB · HTML · RTF / RTFD · text clippings |
@@ -60,72 +83,73 @@ The wheel stays open after you let go of the key, so take your time. Tap another
 | Subtitles | SRT ↔ VTT → TXT |
 | Archives | ZIP · TAR · GZIP (RAR in) |
 
-### ⌘ Tools: 26 of them
+### ⌘ Tools: 31 of them
+
+The wheel groups related tools under Size & Crop, Appearance, Markup, Text & QR, Metadata, Rename,
+Arrange, Timeline and Audio. Hover over a group while dragging, or click it, then choose the tool.
+Back returns to the groups after a one-second hover and gives you another second to move before a
+new group opens automatically. Clicks and keyboard choices work immediately. A group with only one
+available tool becomes a direct option. Recipes always opens your saved, compatible recipes, even
+when there is just one; it stays hidden when none can run. Long recipe lists can still use More.
+All 31 tools remain available through these groups and direct options.
+
 <p align="center">
-  <img src="docs/screenshots/editor-annotate-light.png" width="300" alt="Annotate editor">
-  <img src="docs/screenshots/editor-crop-dark.png" width="300" alt="Crop editor">
-  <img src="docs/screenshots/editor-reorganizePages-light.png" width="300" alt="Reorganize PDF pages">
+  <img src="docs/features/visuals/feature-tools.png" width="100%" alt="Crop and add a background with focused editors and grouped tools">
 </p>
+
 
 | | |
 |---|---|
-| **Images** | Compress · Resize · Crop · Rotate & flip · Adjust (exposure, contrast, saturation) · Annotate (boxes, arrows, pen, text) · Redact · Remove background · Add background · Read QR / barcode · Images → PDF · Collage |
+| **Images** | Compress · Resize · Crop · Rotate & flip · Adjust (light, color and detail) · Annotate (boxes, arrows, pen, text) · Redact · Remove background · Add background · Read QR / barcode · Images → PDF · Collage |
 | **Video & audio** | Compress · Resize · Crop · Trim · Change speed · Split · Merge · Snapshot a frame · Mute · Normalize loudness · Bleep · Stereo → mono |
 | **PDF** | Compress · Rotate · Split · Merge · Reorganize pages · Extract pages · Annotate · Redact (the covered text is really gone) · Read QR |
+| **On-device intelligence** | Extract text (OCR, also from scanned PDFs) · Upscale 2× (MetalFX) · Describe image (alt text) and Smart Rename, on macOS 26 with Apple Intelligence. Nothing leaves your Mac |
+| **Archives** | Extract ZIP, RAR, TAR and GZIP into a new folder beside the original; existing files stay untouched |
 | **Metadata & names** | Edit metadata (title, author, comment) · Remove metadata (images, audio, video, PDF) · Rename any files with a pattern (`{name}`, `{n}`) |
 
-Tools that need a choice open a focused editor first; the rest start directly. Crop offers aspect ratios and exact pixel dimensions. Add Background offers canvas ratios, solid colors, gradients, padding, corners and shadows. Compression can use a quality preset or aim for a size limit; some content cannot reach a very small limit.
+Twenty-six tools open focused editors; Mute, Extract Text, Describe Image, Upscale and archive Extract run straight away. Smart Rename shows its suggested names for you to edit before anything is renamed. Merge and Images to PDF support source ordering, background removal previews its result, audio tools offer channel and loudness controls with audition, and metadata tools let you inspect the source fields. Crop offers aspect ratios, exact pixel dimensions, X/Y positioning and centering. Rotate offers quarter turns and image/video mirroring. Add Background offers canvas ratios, solid colors, gradients, padding, corners and shadows. Adjust offers exposure, brightness, contrast, highlights, shadows, warmth, tint, saturation, vibrance, sharpness, noise reduction and vignette, with original comparison and individual resets.
+
+The [tool editor inventory](docs/features/tool-editor-options.md) lists every editor’s controls and format-specific behavior.
+
+Compression opens a per-drop editor with quality presets, a maximum size per file, or a percentage of each original file's size. Images also offer an explicit maximum long edge. Very small targets may require lower quality or dimensions, and some cannot be reached. PDF compression uses the macOS reduction filter rather than an exact size target. Animated GIFs are compressed frame by frame with a shared palette, fewer colors and, at stronger levels, smaller frames.
+
+
+### Saved Recipes and watch folders
+
+Create a Recipe in **Settings → Recipes** by chaining conversion, resize, compression, metadata removal or rename steps. For example, turn photos into JPG, resize them for the web and remove metadata in one run. Open **Tools → Recipes** to use a saved recipe; the entry appears when a compatible recipe is available. Watch folders apply a saved recipe to arriving files, and Shortcuts, Spotlight and Siri can start the same workflows.
 
 <p align="center">
-  <img src="docs/screenshots/editor-addBackground-light.png" width="420" alt="Add Background editor in light mode">
-  <img src="docs/screenshots/editor-addBackground-dark.png" width="420" alt="Add Background editor in dark mode">
+  <img src="docs/features/visuals/feature-recipes.png" width="100%" alt="Saved Recipes on the Tools wheel, with a three-step convert, resize and remove metadata workflow">
 </p>
 
 ### ⌃ Actions
 <p align="center">
-  <img src="docs/screenshots/wheel-actions-en-light.png" width="300" alt="The Actions wheel">
-  <img src="docs/screenshots/shelf.png" width="300" alt="The Float shelf">
+  <img src="docs/features/visuals/feature-archives.png" width="100%" alt="Archive selected files and folders into ZIP, or extract ZIP, RAR, TAR and GZIP">
 </p>
 
-**AirDrop** · **Float**: park files on a floating shelf and drag them out later · **Copy** (paste the files anywhere) · **Move**: to one of your recent folders or a new one · **Copy Path** (hold ⌥ for `~/…`) · **Terminal**: open the folder in Terminal, iTerm, Ghostty or Warp.
+**AirDrop** · **Archive**: pack selected files and folders into one ZIP beside the first selected item · **Copy** (paste the files anywhere) · **Move**: to one of your recent folders or a new one · **Copy Path** (hold ⌥ for `~/…`) · **Terminal**: open the folder in Terminal, iTerm, Ghostty or Warp.
 
 ## Made to feel at home on your Mac
 <p align="center">
-  <img src="docs/screenshots/settings-customization-light.png" width="420" alt="Customization settings in light mode">
-  <img src="docs/screenshots/settings-customization-dark.png" width="420" alt="Customization settings in dark mode">
+  <img src="docs/features/visuals/feature-customize.png" width="100%" alt="Choose your appearance, wheel size, visible options and output defaults">
 </p>
 
 - **Liquid Glass** on macOS 26, a frosted look on macOS 14–15, or solid surfaces if you prefer.
-- **Make it yours:** choose an accent color and wheel size, pick which key opens which wheel, and set your own global shortcut. Preferences are saved across launches.
+- **Make it yours:** choose an accent color and wheel size, pick which key opens which wheel, and set your own global shortcut. Optional tick sounds and trackpad haptics respond when entering a different wheel option; each has its own saved switch. Preferences are saved across launches.
+- **One Settings window:** General holds appearance, input controls and shared output defaults; Wheel controls sizing and visibility; Recipes holds saved workflows and watch folders; Compatibility shows the available conversions; About contains version, updates and help.
 - **Only what you use:** in Settings › Wheel, untick any format, tool or action you never need. Keep five or six per wheel and every petal gets bigger and easier to hit.
-<p align="center">
-  <img src="docs/screenshots/settings-wheel-light.png" width="420" alt="Settings › Wheel: tick the formats, tools and actions each wheel shows">
-</p>
-
-- **Output preferences:** choose a compression preset or size limit, and how edited files are named. Short Settings tabs fit their content; longer tabs scroll.
-- **Getting Started:** a five-page tour introduces the menu bar, wheels, tools and shortcuts. Replay it from the menu bar.
-- **Check for Updates…:** request the latest stable GitHub release from the menu bar, then open its download page.
+- **General › Compression:** choose Best, Balanced or Smaller, and how edited files are named. Short Settings tabs fit their content; longer tabs scroll.
+- **Getting Started:** a five-page tour introduces the menu bar, wheels, grouped tool selection, Recipes and shortcuts. Replay it from the menu bar.
+- **Updates:** Transflo checks once a day and sends a notification when a new version is out. **Check for Updates…** in the menu bar or Settings checks right away. The DMG/Homebrew edition opens the GitHub release (or run `brew upgrade --cask transflo`); the App Store edition opens the App Store, which installs it. Turn the daily check off in Settings › About.
 - **Jobs window** (⌘J) to follow, cancel or reveal everything you've run. Long jobs send a notification.
 - **English and العربية**, with full right-to-left layout, light and dark.
 - **VoiceOver:** petals are buttons with hints, and finished jobs are announced. Reduce Motion is respected.
 
-<p align="center">
-  <img src="docs/screenshots/settings-output-light.png" width="420" alt="Compression and naming preferences in light mode">
-  <img src="docs/screenshots/settings-output-dark.png" width="420" alt="Compression and naming preferences in dark mode">
-</p>
 
-<details>
-<summary>Getting Started, Jobs and Arabic</summary>
-<p align="center">
-  <img src="docs/screenshots/welcome-light.png" width="420" alt="Getting Started in light mode">
-  <img src="docs/screenshots/welcome-dark.png" width="420" alt="Getting Started in dark mode">
-  <img src="docs/screenshots/jobs.png" width="420" alt="Job progress and results">
-  <img src="docs/screenshots/wheel-actions-ar-dark.png" width="420" alt="Actions wheel in Arabic with right-to-left layout">
-</p>
-</details>
+Browse the [current app captures](docs/screenshots) for individual screens in English, Arabic, light and dark.
 
 ## Private by design
-Transflo does not upload files for processing. AirDrop shares files only when you select that action. Conversions run on your Mac with Apple's frameworks and a bundled, LGPL-licensed FFmpeg. There are no accounts and no analytics, and no automatic update checks. Choosing **Check for Updates…** sends a request to GitHub for public release metadata; your files are never part of that request.
+Transflo does not upload files for processing. AirDrop shares files only when you select that action. Conversions run on your Mac with Apple's frameworks and a bundled, LGPL-licensed FFmpeg. There are no accounts and no analytics. The only network request is the update check: once a day (unless you turn it off in Settings › About) and whenever you choose **Check for Updates…**, Transflo asks GitHub, or the App Store in the App Store edition, for the latest version number. Nothing about you or your files is sent.
 
 macOS may request permissions for:
 - **Automation › Finder**, when you first use the keyboard shortcut (to read your selection).
@@ -134,6 +158,8 @@ macOS may request permissions for:
 - **Folder access**, when opening or saving files in protected locations such as Desktop or Documents.
 
 ## Install
+Everything about Transflo, including the privacy policy and support, is on **[transfloformac.ali-fayed.com](https://transfloformac.ali-fayed.com)**.
+
 **Homebrew**
 ```bash
 brew install --cask ali-fayed/transflo/transflo
@@ -141,9 +167,9 @@ brew install --cask ali-fayed/transflo/transflo
 
 **Or download** the latest `Transflo-<version>-arm64.dmg` from [Releases](https://github.com/Ali-Fayed/transflo/releases/latest), open it, and drag Transflo to Applications.
 
-> **First launch:** releases aren't notarized by Apple yet. If macOS says it can't check Transflo, open **System Settings › Privacy & Security** and click **Open Anyway** (you only do this once).
+Releases are signed with Developer ID and notarized by Apple, so they open like any other Mac app.
 
-**Mac App Store** (coming soon): a sandboxed edition with the same wheels. Because of the App Store's sandbox it asks once per folder before saving next to your files, and it leaves out the Finder-selection shortcut (use **Open in Transflo** from the right-click menu instead), Pages/Keynote/Numbers conversions and the Terminal action. Updates come from the App Store.
+**Mac App Store** (coming soon): a sandboxed edition with the same wheels. Because of the App Store's sandbox it asks once per folder before saving next to your files, and it leaves out the Finder-selection shortcut (use **Open in Transflo** from the right-click menu instead), Pages/Keynote/Numbers conversions and the Terminal action. Transflo tells you when an update is out; the App Store installs it.
 
 Requires **macOS 14 Sonoma or later** on **Apple silicon**.
 

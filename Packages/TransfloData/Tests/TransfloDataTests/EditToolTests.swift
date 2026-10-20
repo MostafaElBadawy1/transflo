@@ -93,7 +93,7 @@ struct EditToolTests {
         for part in parts {
             #expect(abs((try await probe(part).duration ?? 0) - 0.5) < 0.15)
         }
-        await #expect(throws: JobError.unsupported) { _ = try await run(.split, source, .split(points: [5])) }
+        await #expect(throws: JobError.incompatibleSelection) { _ = try await run(.split, source, .split(points: [5])) }
     }
 
     @Test("snapshot saves the frame as PNG")
@@ -115,7 +115,9 @@ struct EditToolTests {
         let pages = try #require(PDFDocument(url: source)?.pageCount)
         let parts = try await run(.split, source, .splitPages(every: 1))
         #expect(parts.count == pages)
-        await #expect(throws: JobError.nothingFound) { _ = try await run(.split, source, .splitPages(every: 99)) }
+        await #expect(throws: JobError.incompatibleSelection) {
+            _ = try await run(.split, source, .splitPages(every: 99))
+        }
     }
 
     @Test("the tempo chain splits large speed changes into atempo stages")

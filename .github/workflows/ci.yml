@@ -37,10 +37,12 @@ jobs:
 
       - name: Prepare temporary output
         run: |
-          echo "CI_LOGS=$RUNNER_TEMP/transflo-ci-logs" >> "$GITHUB_ENV"
-          echo "CI_RESULTS=$RUNNER_TEMP/transflo-ci-results" >> "$GITHUB_ENV"
-          echo "CI_DERIVED_DATA=$RUNNER_TEMP/transflo-ci-derived-data" >> "$GITHUB_ENV"
-          echo "TRANSFLO_RELEASE_OUTPUT_DIR=$RUNNER_TEMP/transflo-ci-release" >> "$GITHUB_ENV"
+          {
+            echo "CI_LOGS=$RUNNER_TEMP/transflo-ci-logs"
+            echo "CI_RESULTS=$RUNNER_TEMP/transflo-ci-results"
+            echo "CI_DERIVED_DATA=$RUNNER_TEMP/transflo-ci-derived-data"
+            echo "TRANSFLO_RELEASE_OUTPUT_DIR=$RUNNER_TEMP/transflo-ci-release"
+          } >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/transflo-ci-logs" "$RUNNER_TEMP/transflo-ci-results"
 
       - name: Check runner toolchain

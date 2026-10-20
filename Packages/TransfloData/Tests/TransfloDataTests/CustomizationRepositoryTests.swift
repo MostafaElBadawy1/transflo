@@ -15,7 +15,8 @@ struct CustomizationRepositoryTests {
         repository.saveLanguage(.arabic)
         repository.saveAppearance(.dark)
         let value = InterfaceCustomization(accentHex: "aabbcc", wheelSize: .large,
-                                           solidSurfaces: true, reduceMotion: true)
+                                           solidSurfaces: true, reduceMotion: true, wheelHaptics: false,
+                                           wheelSound: false)
         repository.saveCustomization(value)
         let reopened = UserDefaultsSettingsRepository(defaults: defaults)
         #expect(reopened.loadCustomization() == value)
@@ -37,5 +38,24 @@ struct CustomizationRepositoryTests {
         preferences.accentHex = "FFFFFFjunk"
         repository.saveCustomization(preferences)
         #expect(repository.loadCustomization()?.accentHex == nil)
+    }
+}
+
+@Suite("Wheel usage storage")
+struct WheelUsageStorageTests {
+    @Test("pins, last choices and counts survive a reload; unreadable data falls back to the default")
+    func roundTrip() throws {
+        let suite = "TransfloDataTests.usage.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let sut = UserDefaultsSettingsRepository(defaults: defaults)
+        #expect(sut.loadWheelUsage() == .standard)
+        var usage = WheelUsage(ordersByFrequency: true)
+        usage.setPinned(WheelOption(.tool(.crop)), true)
+        usage.record(WheelOption(.tool(.rotate)))
+        sut.saveWheelUsage(usage)
+        #expect(UserDefaultsSettingsRepository(defaults: defaults).loadWheelUsage() == usage)
+        defaults.set(Data("not json".utf8), forKey: "settings.wheelUsage")
+        #expect(sut.loadWheelUsage() == .standard)
     }
 }

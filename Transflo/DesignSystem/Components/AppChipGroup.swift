@@ -20,7 +20,7 @@ struct AppChipGroup<Value: Hashable>: View {
                         .appGlass(.card, in: Capsule())
                 }
                 .buttonStyle(.plain)
-                .focusable()
+                .appFocusRing(Capsule(), focusable: true)
                 .environment(\.layoutDirection, direction)
                 .accessibilityAddTraits(selection == option.value ? [.isSelected] : [])
                 .accessibilityIdentifier("transflo.chip.\(option.label.rawValue)")

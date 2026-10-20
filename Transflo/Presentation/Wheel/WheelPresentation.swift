@@ -10,12 +10,17 @@ enum WheelPresentation {
             WheelWedgeContent(id: option.id, label: .key(wedgeLabel(for: tool)), symbol: toolSymbols[tool])
         case .action(let action):
             WheelWedgeContent(id: option.id, label: .key(label(for: action)), symbol: symbol(for: action))
+        case .recipe(let recipe):
+            WheelWedgeContent(id: option.id, label: .verbatim(recipe.name), symbol: .recipe)
         }
     }
 
     static func wedge(for slot: WheelSlot) -> WheelWedgeContent {
         switch slot {
         case .option(let option): wedge(for: option)
+        case .group(let group): WheelWedgeContent(id: "group.\(group.rawValue)", label: .key(group.title),
+                                                symbol: group.symbol)
+        case .back: WheelWedgeContent(id: "back", label: .key(.wheelBack), symbol: .arrowBackward)
         case .more: WheelWedgeContent(id: "more", label: .key(.wheelMore), symbol: .more)
         }
     }
@@ -74,7 +79,12 @@ enum WheelPresentation {
         .extractPages: .toolExtractPages,
         .editMetadata: .toolEditMetadata,
         .removeMetadata: .toolRemoveMetadata,
-        .rename: .toolRename
+        .rename: .toolRename,
+        .extractText: .toolExtractText,
+        .describeImage: .toolDescribeImage,
+        .smartRename: .toolSmartRename,
+        .upscale: .toolUpscale,
+        .extractArchive: .toolExtractArchive
     ]
 
     /// Wedge symbol per tool.
@@ -104,13 +114,19 @@ enum WheelPresentation {
         .extractPages: .extractPages,
         .editMetadata: .editMetadata,
         .removeMetadata: .removeMetadata,
-        .rename: .rename
+        .rename: .rename,
+        .extractText: .extractText,
+        .describeImage: .describeImage,
+        .smartRename: .smartRename,
+        .upscale: .upscale,
+        .extractArchive: .extractArchive
     ]
 
     static func label(for action: ActionKind) -> L10nKey {
         switch action {
         case .airDrop: .actionAirDrop
         case .float: .actionFloat
+        case .archive: .actionArchive
         case .copy: .actionCopy
         case .move: .actionMove
         case .copyPath: .actionCopyPath
@@ -122,6 +138,7 @@ enum WheelPresentation {
         switch action {
         case .airDrop: .airDrop
         case .float: .float
+        case .archive: .extractArchive
         case .copy: .copy
         case .move: .move
         case .copyPath: .copyPath

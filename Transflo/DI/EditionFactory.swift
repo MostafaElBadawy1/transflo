@@ -22,7 +22,9 @@ struct EditionFactory {
     func makeFolderAccess(localizer: Localizer, defaults: UserDefaults) -> SecurityScopedFolderAccess? {
         guard edition.needsFolderAccess else { return nil }
         if let access = Self.folderAccess { return access }
-        let access = SecurityScopedFolderAccess(defaults: defaults) {
+        // Promised drops and copied images land in Downloads, which the App Store edition is entitled to.
+        let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)
+        let access = SecurityScopedFolderAccess(defaults: defaults, entitledFolders: downloads) {
             .init(message: localizer.string(.folderAccessMessage), prompt: localizer.string(.folderAccessPrompt))
         }
         Self.folderAccess = access
@@ -49,13 +51,25 @@ struct EditionFactory {
         return FolderAccessJobScheduler(base: base, access: access, hints: hints)
     }
 
-    /// `nil` on the App Store, which handles updates itself.
-    func makeUpdateViewModel() -> UpdateViewModel? {
-        guard edition.supportsUpdateChecks else { return nil }
-        return UpdateViewModel(
-            checker: GitHubUpdateChecker(),
+    /// Strategy: the App Store edition asks the store, which installs updates; the direct edition
+    /// reads GitHub releases and leaves installing to the user or Homebrew.
+    func makeUpdateFactory(defaults: UserDefaults) -> UpdateFactory {
+        let usesStore = edition.installsUpdatesFromStore
+        return UpdateFactory(
+            checker: Self.previewUpdateChecker ?? (usesStore ? AppStoreUpdateChecker() : GitHubUpdateChecker()),
+            text: usesStore ? .appStore : .gitHub,
+            preferences: UserDefaultsUpdatePreferencesRepository(defaults: defaults),
             currentVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         )
+    }
+
+    /// UI tests answer update checks locally (see `LaunchArgument.previewUpdate`).
+    private static var previewUpdateChecker: (any AppUpdateChecking)? {
+        #if DEBUG
+        UserDefaults.standard.string(forKey: LaunchArgument.previewUpdateDefaultsKey).flatMap(PreviewUpdateChecker.init)
+        #else
+        nil
+        #endif
     }
 
     /// Terminal apps offered in Settings; none where the Terminal action isn't available.
@@ -68,21 +82,39 @@ struct EditionFactory {
         localizer: Localizer,
         conversion: ConversionFactory,
         tools: ToolFactory,
-        visibility: any WheelVisibilityRepository
+        visibility: any WheelVisibilityRepository & WheelUsageRepository & RecipeRepository
     ) -> WheelFactory {
-        // Decorator: the catalog decides what applies, Settings › Wheel what the user wants to see.
+        // Decorators: the catalog decides what applies, recipes join the Tools wheel when they fit,
+        // Settings › Wheel decides what the user wants to see, and pins and use decide the order.
         WheelFactory(
             bindings: bindings,
             localizer: localizer,
-            optionsProvider: VisibilityFilteredWheelOptionsProvider(
-                base: CatalogWheelOptionsProvider(
-                    catalog: conversion.catalog,
-                    tools: tools.catalog,
-                    fallback: PreviewWheelOptionsProvider(unavailableActions: edition.unavailableActions),
-                    engines: tools.engines
+            optionsProvider: UsageOrderedWheelOptionsProvider(
+                base: VisibilityFilteredWheelOptionsProvider(
+                    base: makeFittingOptions(conversion: conversion, tools: tools, recipes: visibility),
+                    visibility: visibility
                 ),
-                visibility: visibility
+                usage: visibility
             )
+        )
+    }
+
+    /// Everything that applies to the dragged files, recipes included, before the user's visibility
+    /// and ordering choices (watch folders decide fit with this too).
+    func makeFittingOptions(
+        conversion: ConversionFactory,
+        tools: ToolFactory,
+        recipes: any RecipeRepository
+    ) -> any WheelOptionsProviding {
+        RecipeWheelOptionsProvider(
+            base: CatalogWheelOptionsProvider(
+                catalog: conversion.catalog,
+                tools: tools.catalog,
+                fallback: PreviewWheelOptionsProvider(unavailableActions: edition.unavailableActions),
+                engines: tools.engines
+            ),
+            recipes: recipes,
+            catalog: conversion.catalog
         )
     }
 
@@ -102,7 +134,8 @@ struct EditionFactory {
                 showsShortcut: edition.supportsFinderSelection
             ),
             jobCenter: jobs.center,
-            updateViewModel: makeUpdateViewModel(),
+            updateViewModel: settings.updates.makeViewModel(),
+            opener: jobs.opener,
             onboarding: settings.makeOnboardingViewModel(keys: inputPreferences),
             localizer: localizer
         )

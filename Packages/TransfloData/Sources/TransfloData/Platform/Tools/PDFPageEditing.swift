@@ -5,8 +5,8 @@ import TransfloDomain
 /// Page-level PDF edits: annotations, true redaction, page order, document metadata.
 /// Annotations and redaction boxes target the first page (the one the editor shows).
 enum PDFPageEditing {
-    static func annotate(_ document: PDFDocument, with annotations: [Annotation]) {
-        guard let page = document.page(at: 0) else { return }
+    static func annotate(_ document: PDFDocument, with annotations: [Annotation], pageIndex: Int = 0) {
+        guard let page = document.page(at: pageIndex) else { return }
         let bounds = page.bounds(for: .mediaBox)
         for annotation in annotations {
             guard let mark = pdfAnnotation(annotation, bounds: bounds, rotation: page.rotation) else { continue }
@@ -15,22 +15,23 @@ enum PDFPageEditing {
     }
 
     /// Replaces the first page with a flattened image carrying the boxes, so the covered text is gone.
-    static func redact(_ document: PDFDocument, boxes: [NormalizedRect]) throws(JobError) {
-        guard let page = document.page(at: 0) else { throw .failed }
+    static func redact(_ document: PDFDocument, boxes: [NormalizedRect], pageIndex: Int = 0) throws(JobError) {
+        guard let page = document.page(at: pageIndex) else { throw .failed }
         let rendered = try PDFPageImageExporter.render(page, dpi: 200)
         guard let flattened = ImageMarkup.redact(rendered, boxes: boxes) else { throw .failed }
         let points = page.bounds(for: .mediaBox).size
         let upright = page.rotation % 180 == 0 ? points : CGSize(width: points.height, height: points.width)
         let image = NSImage(cgImage: flattened, size: upright)
         guard let replacement = PDFPage(image: image) else { throw .failed }
-        document.removePage(at: 0)
-        document.insert(replacement, at: 0)
+        document.removePage(at: pageIndex)
+        document.insert(replacement, at: pageIndex)
     }
 
     /// A new document with `indices` (zero-based) in that order.
     static func pages(_ indices: [Int], from document: PDFDocument) throws(JobError) -> PDFDocument {
-        let valid = indices.filter { (0..<document.pageCount).contains($0) }
-        guard !valid.isEmpty else { throw .nothingFound }
+        guard !indices.isEmpty else { throw .nothingFound }
+        guard indices.allSatisfy({ (0..<document.pageCount).contains($0) }) else { throw .incompatibleSelection }
+        let valid = indices
         let result = PDFDocument()
         for index in valid {
             if let page = document.page(at: index)?.copy() as? PDFPage { result.insert(page, at: result.pageCount) }

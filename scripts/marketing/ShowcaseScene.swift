@@ -30,7 +30,7 @@ struct ShowcaseScene: PromoScene {
             canvas.layer(alpha: amount) {
                 canvas.transformed(scale: PromoEasing.mix(0.96, 1, amount) * drift, around: center,
                                    offset: CGSize(width: 0, height: (1 - amount) * 50)) {
-                    canvas.image(shot.image, in: shot.frame)
+                    canvas.image(shot.image, in: Self.fitted(shot.image.size, in: shot.frame))
                 }
             }
         }
@@ -38,6 +38,16 @@ struct ShowcaseScene: PromoScene {
         case .textLeft: drawTextColumn(on: canvas, at: time)
         case .textTop: drawTextHeader(on: canvas, at: time)
         }
+    }
+
+    /// The largest rect with `size`'s proportions centered in `frame`, so a re-captured screenshot
+    /// with a different shape is never stretched.
+    static func fitted(_ size: CGSize, in frame: CGRect) -> CGRect {
+        guard size.width > 0, size.height > 0 else { return frame }
+        let scale = min(frame.width / size.width, frame.height / size.height)
+        let fitted = CGSize(width: size.width * scale, height: size.height * scale)
+        return CGRect(x: frame.midX - fitted.width / 2, y: frame.midY - fitted.height / 2,
+                      width: fitted.width, height: fitted.height)
     }
 
     private func drawTextColumn(on canvas: PromoCanvas, at time: Double) {

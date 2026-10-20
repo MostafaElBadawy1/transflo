@@ -95,16 +95,19 @@ struct MarkupEditorTests {
         sut.clear()
         #expect(sut.settings == nil)
         sut.undo()
+        #expect(sut.annotations.count == 1)
+        #expect(sut.canRedo)
+        sut.redo()
         #expect(sut.annotations.isEmpty)
     }
 
-    @Test("marks aren't applicable before the preview loads; PDFs note the first page")
+    @Test("drawing is ignored until the preview is available")
     func notLoaded() async {
         let sut = AnnotateEditorViewModel(item: file, format: pdf, previews: FakePreviewProvider(.empty))
         sut.begin(at: point(0, 0))
         sut.move(to: point(0.5, 0.5))
         sut.end()
-        #expect(sut.annotations.count == 1 && sut.settings == nil)
+        #expect(sut.annotations.isEmpty && sut.settings == nil)
         #expect(sut.isPDF)
     }
 

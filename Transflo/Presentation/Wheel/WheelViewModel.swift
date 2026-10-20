@@ -16,6 +16,7 @@ final class WheelViewModel {
         var options: [WheelOption] = []
         var summary: DragSummary?
         var page = 0
+        var group: WheelToolGroup?
         var slots: [WheelSlot] = []
         var highlightedIndex: Int?
         var geometry = WheelGeometry(wedgeCount: 0, innerRadius: 0, outerRadius: 0, isRightToLeft: false)
@@ -32,6 +33,9 @@ final class WheelViewModel {
     @ObservationIgnored private let localizer: Localizer?
     @ObservationIgnored private let sizing: WheelSizing
     @ObservationIgnored private let dwellDelay: Duration
+    @ObservationIgnored private let navigationGrace: Duration
+    @ObservationIgnored private var hoverReadyAt: ContinuousClock.Instant?
+    @ObservationIgnored private let onSelectionChange: () -> Void
     @ObservationIgnored private var dwellTask: Task<Void, Never>?
 
     init(
@@ -39,10 +43,13 @@ final class WheelViewModel {
         layout: any LayoutDirectionProviding,
         sizing: WheelSizing = .standard,
         dwellDelay: Duration = .milliseconds(400),
+        navigationGrace: Duration = .seconds(1),
         sizingProvider: (() -> WheelSizing)? = nil,
         byteFormatter: (any ByteSizeFormatting)? = nil,
-        localizer: Localizer? = nil
+        localizer: Localizer? = nil,
+        onSelectionChange: @escaping () -> Void = {}
     ) {
+        self.onSelectionChange = onSelectionChange
         self.byteFormatter = byteFormatter
         self.localizer = localizer
         self.bindings = bindings
@@ -50,6 +57,7 @@ final class WheelViewModel {
         self.sizing = sizing
         self.sizingProvider = sizingProvider
         self.dwellDelay = dwellDelay
+        self.navigationGrace = navigationGrace
     }
 
     /// The modifier glyph shown in the hub, e.g. "⇧" for Convert.
@@ -60,7 +68,7 @@ final class WheelViewModel {
 
     /// Useful selection facts, replaced by the hovered option inside the hub component.
     var hubDetail: String? {
-        guard let summary = state.summary, summary.itemCount > 0,
+        guard state.group == nil, let summary = state.summary, summary.itemCount > 0,
               let total = summary.totalBytes, let byteFormatter, let localizer else { return nil }
         let size = byteFormatter.string(bytes: total, locale: localizer.locale)
         guard summary.itemCount > 1 else { return size }
@@ -69,20 +77,23 @@ final class WheelViewModel {
     }
 
     var hubTitle: L10nKey {
-        state.kind.map(WheelPresentation.title(for:)) ?? .wheelConvert
+        state.group?.title ?? state.kind.map(WheelPresentation.title(for:)) ?? .wheelConvert
     }
 
     var pageCount: Int {
-        let count = state.options.count
-        guard count > Self.wedgesPerRing else { return 1 }
-        let perPage = Self.wedgesPerRing - 1
+        let count = navigationSlots.count
+        let capacity = Self.wedgesPerRing - (state.group == nil ? 0 : 1)
+        guard count > capacity else { return 1 }
+        let perPage = capacity - 1
         return (count + perPage - 1) / perPage
     }
 
     /// Shows `options` for `kind`, laid out for the current reading direction.
     func show(_ kind: WheelKind, options: [WheelOption], summary: DragSummary? = nil) {
         dwellTask?.cancel()
-        state = State(kind: kind, options: options, summary: summary)
+        hoverReadyAt = nil
+        var seen: Set<String> = []
+        state = State(kind: kind, options: options.filter { seen.insert($0.id).inserted }, summary: summary)
         layOut(page: 0)
     }
 
@@ -94,11 +105,50 @@ final class WheelViewModel {
         let index = offset.flatMap(state.geometry.wedgeIndex(at:))
         if index != state.highlightedIndex {
             state.highlightedIndex = index
+            if let index, state.slots[index] != .more { onSelectionChange() }
             dwellTask?.cancel()
-            if let index, state.slots[index] == .more { startDwell() }
+            if let index, isNavigation(state.slots[index]) { startDwell() }
         }
         guard let index else { return false }
         return state.slots[index] != .more
+    }
+
+    private func isNavigation(_ slot: WheelSlot) -> Bool {
+        switch slot {
+        case .group, .back, .more: true
+        case .option: false
+        }
+    }
+
+    /// Opens a group, returns to the root, or turns a page without dispatching a file operation.
+    @discardableResult
+    func navigate(at offset: WheelPoint) -> Bool {
+        guard let index = state.geometry.wedgeIndex(at: offset) else { return false }
+        return navigate(state.slots[index])
+    }
+
+    @discardableResult
+    private func navigate(_ slot: WheelSlot) -> Bool {
+        switch slot {
+        case .group(let group): openGroup(group)
+        case .back:
+            dwellTask?.cancel()
+            hoverReadyAt = ContinuousClock.now.advanced(by: navigationGrace)
+            state.group = nil
+            layOut(page: 0)
+        case .more: turnPage()
+        case .option: return false
+        }
+        return true
+    }
+
+    func openGroup(_ group: WheelToolGroup) {
+        guard state.kind == .tools, state.options.contains(where: { WheelToolGroup.group(for: $0) == group }) else {
+            return
+        }
+        dwellTask?.cancel()
+        state.group = group
+        layOut(page: 0)
     }
 
     /// Whether the pointer is on the paging control.
@@ -125,7 +175,10 @@ final class WheelViewModel {
     func highlightWedge(at offset: WheelPoint) {
         guard let index = state.geometry.wedgeIndex(at: offset) else { return }
         dwellTask?.cancel()
-        state.highlightedIndex = index
+        if index != state.highlightedIndex {
+            state.highlightedIndex = index
+            if case .option = state.slots[index] { onSelectionChange() }
+        }
     }
 
     /// The wheel bound to `key`, if any.
@@ -143,9 +196,16 @@ final class WheelViewModel {
         guard let current = state.highlightedIndex else {
             // The first press lands on the top wedge going clockwise, or on its neighbor going back.
             state.highlightedIndex = clockwise ? 0 : (step + count) % count
+            selectionFeedback()
             return
         }
         state.highlightedIndex = (current + step + count) % count
+        if state.highlightedIndex != current { selectionFeedback() }
+    }
+
+    private func selectionFeedback() {
+        guard let index = state.highlightedIndex, state.slots[index] != .more else { return }
+        onSelectionChange()
     }
 
     /// The highlighted option, or `nil` when nothing is highlighted. On More this turns the page
@@ -153,8 +213,9 @@ final class WheelViewModel {
     func activateHighlighted() -> WheelOption? {
         guard let index = state.highlightedIndex, state.slots.indices.contains(index) else { return nil }
         guard case .option(let option) = state.slots[index] else {
-            turnPage()
-            state.highlightedIndex = state.slots.firstIndex(of: .more)
+            let wasMore = state.slots[index] == .more
+            navigate(state.slots[index])
+            if wasMore { state.highlightedIndex = state.slots.firstIndex(of: .more) }
             return nil
         }
         return option
@@ -174,31 +235,43 @@ final class WheelViewModel {
     }
 
     private func startDwell() {
-        dwellTask = Task { [weak self, dwellDelay] in
-            try? await Task.sleep(for: dwellDelay)
+        let isBack = state.highlightedIndex.map { state.slots[$0] == .back } ?? false
+        let remainingGrace = hoverReadyAt.map { ContinuousClock.now.duration(to: $0) } ?? .zero
+        let delay = max(isBack ? navigationGrace : dwellDelay, remainingGrace)
+        dwellTask = Task { [weak self, delay] in
+            try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
-            self?.turnPage()
+            guard let self, let index = state.highlightedIndex, state.slots.indices.contains(index) else { return }
+            navigate(state.slots[index])
         }
     }
 
     private func layOut(page: Int) {
-        let options = state.options
+        let options = navigationSlots
+        let capacity = Self.wedgesPerRing - (state.group == nil ? 0 : 1)
         let slots: [WheelSlot]
-        if options.count <= Self.wedgesPerRing {
-            slots = options.map(WheelSlot.option)
+        if options.count <= capacity {
+            slots = options
         } else {
-            let perPage = Self.wedgesPerRing - 1
-            slots = options.dropFirst(page * perPage).prefix(perPage).map(WheelSlot.option) + [.more]
+            let perPage = capacity - 1
+            slots = Array(options.dropFirst(page * perPage).prefix(perPage)) + [.more]
         }
         state.page = page
-        state.slots = slots
+        state.slots = slots + (state.group == nil ? [] : [.back])
         state.highlightedIndex = nil
         let sizing = sizingProvider?() ?? sizing
         state.geometry = WheelGeometry(
-            wedgeCount: slots.count,
+            wedgeCount: state.slots.count,
             innerRadius: sizing.innerRadius,
-            outerRadius: sizing.outerRadius(forWedgeCount: slots.count),
+            outerRadius: sizing.outerRadius(forWedgeCount: state.slots.count),
             isRightToLeft: layout.isRightToLeft
         )
+    }
+
+    private var navigationSlots: [WheelSlot] {
+        if let group = state.group {
+            return state.options.filter { WheelToolGroup.group(for: $0) == group }.map(WheelSlot.option)
+        }
+        return state.kind == .tools ? WheelToolGroup.rootSlots(for: state.options) : state.options.map(WheelSlot.option)
     }
 }

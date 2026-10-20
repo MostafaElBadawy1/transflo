@@ -8,10 +8,10 @@ struct AppEditionTests {
     @Test("the direct edition offers everything; the App Store edition drops what the sandbox forbids")
     func capabilities() {
         #expect(AppEdition.direct.supportsFinderSelection && AppEdition.direct.supportsIWork)
-        #expect(AppEdition.direct.supportsUpdateChecks && !AppEdition.direct.needsFolderAccess)
+        #expect(!AppEdition.direct.installsUpdatesFromStore && !AppEdition.direct.needsFolderAccess)
         #expect(AppEdition.direct.unavailableActions.isEmpty)
         #expect(!AppEdition.appStore.supportsFinderSelection && !AppEdition.appStore.supportsIWork)
-        #expect(!AppEdition.appStore.supportsUpdateChecks && AppEdition.appStore.needsFolderAccess)
+        #expect(AppEdition.appStore.installsUpdatesFromStore && AppEdition.appStore.needsFolderAccess)
         #expect(AppEdition.appStore.unavailableActions == [.terminal])
     }
 

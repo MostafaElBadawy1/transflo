@@ -20,7 +20,11 @@ final class JobCenter: JobScheduling {
     @ObservationIgnored private let notificationThreshold: Duration
     @ObservationIgnored private let preparation: PrepareWheelJobUseCase?
     @ObservationIgnored private let now: () -> ContinuousClock.Instant
+    @ObservationIgnored private let trasher: (any FileTrashing)?
+    @ObservationIgnored private let usage: RecordWheelUsageUseCase?
+    @ObservationIgnored private let fingerprint: (URL) -> String?
     @ObservationIgnored private var tasks: [UUID: Task<Void, Never>] = [:]
+    @ObservationIgnored private var finishObservers: [(JobRecord) -> Void] = []
 
     init(
         runOption: RunWheelOptionUseCase,
@@ -32,7 +36,10 @@ final class JobCenter: JobScheduling {
         maximumConcurrentJobs: Int = min(2, max(1, ProcessInfo.processInfo.activeProcessorCount / 2)),
         notificationThreshold: Duration = .seconds(3),
         now: @escaping () -> ContinuousClock.Instant = { ContinuousClock.now },
-        preparation: PrepareWheelJobUseCase? = nil
+        preparation: PrepareWheelJobUseCase? = nil,
+        trasher: (any FileTrashing)? = nil,
+        usage: RecordWheelUsageUseCase? = nil,
+        fingerprint: @escaping (URL) -> String? = { _ in nil }
     ) {
         self.runOption = runOption
         self.hud = hud
@@ -44,14 +51,55 @@ final class JobCenter: JobScheduling {
         self.notificationThreshold = notificationThreshold
         self.now = now
         self.preparation = preparation
+        self.trasher = trasher
+        self.usage = usage
+        self.fingerprint = fingerprint
+    }
+
+    /// Whether `record` offers Undo here (it needs a way to reach the Trash).
+    func canUndo(_ record: JobRecord) -> Bool {
+        trasher != nil && record.state.isFinished && record.undoableOutputs.contains {
+            guard let saved = record.outputFingerprints[$0] else { return false }
+            return saved == fingerprint($0)
+        }
+    }
+
+    /// Moves a finished job's new files to the Trash. Files already gone are skipped; if one can't
+    /// be moved, the rest still are and the job stays undoable for another try.
+    func undo(_ id: UUID) {
+        guard let trasher, let record = job(id), canUndo(record) else { return }
+        var failed = false
+        for url in record.undoableOutputs {
+            guard let saved = record.outputFingerprints[url], saved == fingerprint(url) else { continue }
+            do throws(JobError) { try trasher.trash(url) } catch { failed = true }
+        }
+        guard !failed else { return }
+        update(id) { $0.isUndone = true }
+        announcer.announce(localizer.string(.jobUndone))
     }
 
     func schedule(_ option: WheelOption, items: [URL], near point: WheelPoint) {
+        usage?.execute(option)
+        enqueue(option, items: items, origin: point, isBackground: false)
+    }
+
+    /// Runs a job without a result disc (watch folders); it still appears in Jobs and can notify.
+    func scheduleInBackground(_ option: WheelOption, items: [URL]) {
+        enqueue(option, items: items, origin: WheelPoint(x: 0, y: 0), isBackground: true)
+    }
+
+    /// Calls `handler` with every job as it finishes.
+    func observeFinishedJobs(_ handler: @escaping (JobRecord) -> Void) {
+        finishObservers.append(handler)
+    }
+
+    private func enqueue(_ option: WheelOption, items: [URL], origin: WheelPoint, isBackground: Bool) {
         let prepared = preparation?.execute(option, items: items)
-        let record = JobRecord(id: UUID(), option: prepared?.option ?? option, items: items, origin: point,
+        var record = JobRecord(id: UUID(), option: prepared?.option ?? option, items: items, origin: origin,
                                state: .queued, originalWithinTarget: prepared?.originalWithinTarget ?? false)
+        record.isBackground = isBackground
         jobs.append(record)
-        hud.present(record.id)
+        if !isBackground { hud.present(record.id) }
         startQueuedJobs()
     }
 
@@ -102,8 +150,11 @@ final class JobCenter: JobScheduling {
     }
 
     private func start(_ record: JobRecord) {
-        update(record.id) { $0.state = .running(fraction: 0) }
         let startedAt = now()
+        update(record.id) {
+            $0.state = .running(fraction: 0)
+            $0.startedAt = startedAt
+        }
         let id = record.id
         // Strong captures are deliberate: the center lives as long as the app, and `finish`
         // removes the task, so no cycle outlives the job.
@@ -134,9 +185,13 @@ final class JobCenter: JobScheduling {
             case .success(let outputs): record.state = .succeeded(outputs: outputs)
             case .failure(let error): record.state = .failed(error)
             }
+            for url in record.undoableOutputs {
+                record.outputFingerprints[url] = fingerprint(url)
+            }
         }
-        hud.jobFinished(id)
+        if job(id)?.isBackground == false { hud.jobFinished(id) }
         if let record = job(id) {
+            finishObservers.forEach { $0(record) }
             JobPresentation.announcement(for: record, localizer: localizer).map(announcer.announce)
             if now() - startedAt >= notificationThreshold { notifyCompletion(of: record) }
         }

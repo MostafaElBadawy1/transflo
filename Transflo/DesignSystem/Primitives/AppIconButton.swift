@@ -4,14 +4,35 @@ import SwiftUI
 struct AppIconButton: View {
     @Environment(Localizer.self) private var localizer
     let symbol: AppSymbol
-    let label: L10nKey
+    let label: AppTextContent
     let action: () -> Void
+
+    init(symbol: AppSymbol, label: L10nKey, action: @escaping () -> Void) {
+        self.init(symbol: symbol, content: .key(label), action: action)
+    }
+
+    /// A button whose name needs arguments, such as "Reset Exposure".
+    init(symbol: AppSymbol, content: AppTextContent, action: @escaping () -> Void) {
+        self.symbol = symbol
+        self.label = content
+        self.action = action
+    }
 
     var body: some View {
         Button(action: action) {
-            AppIcon(symbol: symbol, accessibilityLabel: label)
+            AppIcon(symbol: symbol)
         }
         .buttonStyle(.borderless)
-        .help(localizer.string(label))
+        .appFocusRing(Circle())
+        .help(title)
+        .accessibilityLabel(title)
+    }
+
+    private var title: String {
+        switch label {
+        case .key(let key): localizer.string(key)
+        case let .formatted(key, arguments): localizer.string(key, arguments: arguments)
+        case .verbatim(let text): text
+        }
     }
 }

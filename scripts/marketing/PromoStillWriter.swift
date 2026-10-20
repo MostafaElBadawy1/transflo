@@ -3,7 +3,7 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-/// Writes one frame as a PNG, for reviewing scenes and for the README poster.
+/// Writes one opaque frame as a PNG (no alpha channel, as App Store Connect requires).
 struct PromoStillWriter {
     enum StillError: Error, CustomStringConvertible {
         case render
@@ -28,7 +28,7 @@ struct PromoStillWriter {
                 bitsPerComponent: 8,
                 bytesPerRow: 0,
                 space: space,
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
               ) else { throw StillError.render }
         draw(context)
         guard let image = context.makeImage() else { throw StillError.render }

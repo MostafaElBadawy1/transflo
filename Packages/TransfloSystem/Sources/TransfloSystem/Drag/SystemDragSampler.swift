@@ -18,9 +18,11 @@ public final class SystemDragSampler: DragSampling {
         )
     }
 
+    /// Real files, or placeholders for promised ones (drags from Safari, Photos or Mail).
     public func draggedFileURLs() -> [URL] {
         let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
-        return pasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL] ?? []
+        let files = pasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL] ?? []
+        return files.isEmpty ? PromisedFiles.placeholders(on: pasteboard) : files
     }
 
     nonisolated static func modifiers(from flags: NSEvent.ModifierFlags) -> Set<ModifierKey> {

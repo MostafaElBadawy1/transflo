@@ -8,6 +8,8 @@ enum AppColors {
     private static var chosenAccentHex: String? { InterfaceStyle.shared.preferences.accentHex }
     static let background = Color(.background)
     static let surface = Color(.surface)
+    /// A page's paper in previews of exported documents (white, or dark in Dark Mode).
+    static let paper = Color(nsColor: .textBackgroundColor)
     static let divider = Color(.divider)
     static let textPrimary = Color(.textPrimary)
     static let textSecondary = Color(.textSecondary)

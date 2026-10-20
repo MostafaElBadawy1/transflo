@@ -8,11 +8,6 @@ struct ToolPreferencesView: View {
         SettingsSection(title: .settingsCompression) {
             AppChipGroup(key: .settingsCompression, selection: choice, options: Self.options)
             SettingsFootnote(message: description)
-            if model.choice == .target {
-                AppDecimalNumberField(label: .settingsTargetSize, unit: .unitMegabytes,
-                                      value: Binding(get: { model.targetMegabytes },
-                                                     set: { model.setTargetMegabytes($0) }))
-            }
         }
     }
 
@@ -21,7 +16,6 @@ struct ToolPreferencesView: View {
         case .light: .compressionLightHint
         case .medium: .compressionMediumHint
         case .strong: .compressionStrongHint
-        case .target: .settingsTargetHint
         }
     }
 
@@ -30,7 +24,7 @@ struct ToolPreferencesView: View {
     }
 
     private static let options: [AppSegmentedPicker<CompressionChoice>.Option] = [
-        .init(value: .light, label: .compressionLight), .init(value: .medium, label: .compressionMedium),
-        .init(value: .strong, label: .compressionStrong), .init(value: .target, label: .compressionTarget)
+        .init(value: .light, label: .settingsQualityBest), .init(value: .medium, label: .compressionMedium),
+        .init(value: .strong, label: .settingsQualitySmaller)
     ]
 }

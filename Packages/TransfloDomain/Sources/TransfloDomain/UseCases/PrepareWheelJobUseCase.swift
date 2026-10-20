@@ -15,9 +15,17 @@ public struct PrepareWheelJobUseCase: Sendable {
         var settings = option.settings ?? .compress(preferences.loadCompressionGoal())
         // The system PDF reduction filter has no byte-budget control.
         if items.contains(where: { $0.pathExtension.lowercased() == "pdf" }),
-           case .compress(.targetBytes) = settings { settings = .compress(.level(.medium)) }
+           case .compress(let goal) = settings {
+            if case .level = goal {} else { settings = .compress(.level(.medium)) }
+        }
         let resolved = WheelOption(option.kind, settings: settings)
-        guard case .compress(.targetBytes(let target)) = settings, target > 0, !items.isEmpty else {
+        let target: Int64
+        switch settings {
+        case .compress(.targetBytes(let bytes)), .compressImage(.targetBytes(let bytes), maximumLongEdge: nil):
+            target = bytes
+        default: return (resolved, false)
+        }
+        guard target > 0, !items.isEmpty else {
             return (resolved, false)
         }
         let unchanged = items.allSatisfy { item in

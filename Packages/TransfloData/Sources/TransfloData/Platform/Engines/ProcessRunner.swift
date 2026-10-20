@@ -60,6 +60,8 @@ enum ProcessRunner {
         }
     }
 
+    // Helper diagnostics may contain invalid UTF-8; retain readable text with replacement characters.
+    // swiftlint:disable optional_data_string_conversion
     private static func drain(_ handle: FileHandle, into onLine: @Sendable (String) -> Void) async {
         do {
             var line: [UInt8] = []
@@ -74,6 +76,7 @@ enum ProcessRunner {
             // A read error just ends the stream; the exit status still decides success.
         }
     }
+    // swiftlint:enable optional_data_string_conversion
 }
 
 // @unchecked: `Process.terminate()` is safe to call from any thread.

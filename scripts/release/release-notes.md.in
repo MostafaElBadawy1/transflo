@@ -1,5 +1,20 @@
 # Transflo @VERSION@
 
+## What's new in 1.0.1
+- Recipes and watch folders, plus Shortcuts, Spotlight and Siri actions.
+- On-device text extraction, image descriptions, Smart Rename and 2× upscaling.
+- ICO/ICNS icons, GIF compression, clipboard conversion and promised-file drops.
+- Faster media encoding, improved trim sliders, favorites and batch progress.
+- Compact Tools groups with hover/click navigation and Back, keeping every feature without repeated petals.
+- Archive replaces Float on the Actions wheel; save selected files and folders into one ZIP.
+- Recipes remain discoverable when the first conversion matches the input format, and stale hidden entries no longer hide saved recipes.
+- A one-second Back hover and return pause prevent accidental group changes; saved Recipes have their own entry.
+- Smaller wheels, icons and text for a lighter menu.
+- Simpler General settings: Best, Balanced or Smaller; the Formats tab and saved size/percentage defaults are removed.
+- Extract ZIP, RAR, TAR and GZIP archives into a new folder without overwriting existing files.
+- Safer Undo and Shortcuts filenames; complete PDF OCR; reliable recipe cancellation,
+  partial results, watch-folder ownership and multi-file promised drops.
+
 Free, open-source file conversion at your cursor. Drag a file, tap a key, drop it on the wheel.
 
 ## Install
@@ -7,16 +22,17 @@ Free, open-source file conversion at your cursor. Drag a file, tap a key, drop i
 - **DMG:** download `Transflo-@VERSION@-arm64.dmg` below, open it and drag Transflo to Applications.
 @FIRST_LAUNCH@
 ## What's inside
-- **⇧ Convert:** 262 conversion paths across images, audio, video, documents, PDF, slides, spreadsheets, subtitles and archives.
-- **⌘ Tools:** 26 tools, from compress, crop and annotate to trim, bleep, merge, page editing, metadata and batch rename.
-- **⌃ Actions:** AirDrop, Float shelf, Copy, Move, Copy Path and Terminal.
+- **⇧ Convert:** 288 conversion paths across images, icons, audio, video, documents, PDF, slides, spreadsheets, subtitles and archives.
+- **⌘ Tools:** 31 tools, from compress, crop and annotate to trim, bleep, merge, page editing, metadata, batch rename, text extraction, upscaling and Smart Rename, plus your own Recipes.
+- **⌃ Actions:** AirDrop, Archive to ZIP, Copy, Move, Copy Path and Terminal.
 - **Keyboard:** ⌥⌘Return on a Finder selection, plus Open in Transflo in the right-click menu.
-- **Customization:** saved accent colors, wheel sizes, appearance, Liquid Glass and reduced motion. Settings pages adapt to their content.
-- **Editors:** crop ratios and pixel dimensions, plus Add Background with canvas styles, gradients, padding, corners and shadows.
-- **Output:** compression presets or a target size, and output filename styles.
-- **Getting Started:** a five-page tour, replayable from the menu bar, plus an on-demand update check.
+- **Settings:** General (language, appearance, accent, keys, haptics, tick sound, preset compression and output naming), Wheel (size and what each wheel shows), Recipes (chained steps and watch folders), Compatibility (every conversion at a glance) and About (version and updates).
+- **Editors:** focused editors for crop, rotate, adjust, annotate, redact, add or remove a background, collage, compress, trim, speed, split, merge, PDF pages, metadata and rename, with live previews and playback for audio and video.
+- **Output defaults:** Best, Balanced or Smaller compression and output filename styles.
+- **Getting Started:** a five-page tour with the current grouped wheel and selection style, replayable from the menu bar.
+- **Updates:** a daily check that notifies you when a new version is out (switch it off in Settings › About), plus Check for Updates… in the menu. Update with the new DMG or `brew upgrade --cask transflo`.
 - **Everything else:** a Jobs window, English and Arabic, light and dark, and VoiceOver support.
 
-Requires macOS 14 or later on Apple silicon. File processing runs on your Mac. AirDrop shares files on request; Check for Updates contacts GitHub only when selected.
+Requires macOS 14 or later on Apple silicon. File processing runs on your Mac. AirDrop shares files on request. The update check asks GitHub for the latest version number once a day and when you choose Check for Updates; nothing about you or your files is sent.
 
 SHA-256 (`Transflo-@VERSION@-arm64.dmg`): `@SHA256@`

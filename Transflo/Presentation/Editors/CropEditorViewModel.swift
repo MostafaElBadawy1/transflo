@@ -8,6 +8,7 @@ final class CropEditorViewModel: ToolEditorModel {
     private(set) var preview: ToolPreview = .empty
     private(set) var rect = NormalizedRect.full
     private(set) var aspect = CropAspect.free
+    var showsGrid = true
 
     @ObservationIgnored private let item: URL
     @ObservationIgnored private let format: FormatDescriptor?
@@ -23,6 +24,11 @@ final class CropEditorViewModel: ToolEditorModel {
         guard preview.thumbnail != nil, preview.width != nil, rect != .full else { return nil }
         return .crop(rect)
     }
+
+    var outputPixels: PixelRect {
+        rect.pixels(width: preview.width ?? 1, height: preview.height ?? 1, even: format?.family == .video)
+    }
+    func nudge(x: Int, y: Int) { setPosition(x: pixelX + x, y: pixelY + y) }
 
     func load() async {
         let loaded = await previews.preview(of: item, format: format)
@@ -60,6 +66,8 @@ final class CropEditorViewModel: ToolEditorModel {
 
     var pixelWidth: Int { pixelRect?.width ?? 0 }
     var pixelHeight: Int { pixelRect?.height ?? 0 }
+    var pixelX: Int { pixelRect?.x ?? 0 }
+    var pixelY: Int { pixelRect?.y ?? 0 }
     var maximumWidth: Int { max(1, preview.width ?? 1) }
     var maximumHeight: Int { max(1, preview.height ?? 1) }
 
@@ -80,6 +88,17 @@ final class CropEditorViewModel: ToolEditorModel {
     func reset() {
         rect = .full
         aspect = .free
+    }
+
+    func setPosition(x: Int, y: Int) {
+        guard preview.width != nil else { return }
+        rect = NormalizedRect(x: Double(x) / Double(maximumWidth), y: Double(y) / Double(maximumHeight),
+                              width: rect.width, height: rect.height)
+    }
+
+    func center() {
+        rect = NormalizedRect(x: (1 - rect.width) / 2, y: (1 - rect.height) / 2,
+                              width: rect.width, height: rect.height)
     }
 
     private var pixelRect: PixelRect? {

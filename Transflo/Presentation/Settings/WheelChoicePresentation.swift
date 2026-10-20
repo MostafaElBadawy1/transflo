@@ -18,6 +18,7 @@ enum WheelChoicePresentation {
         case .format(let format): .verbatim(format.displayName)
         case .tool(let tool): .key(WheelPresentation.toolLabels[tool] ?? WheelPresentation.wedgeLabel(for: tool))
         case .action(let action): .key(WheelPresentation.label(for: action))
+        case .recipe(let recipe): .verbatim(recipe.name)
         }
     }
 

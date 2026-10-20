@@ -10,7 +10,8 @@ struct WheelFactory {
     func makeViewModel() -> WheelViewModel {
         WheelViewModel(bindings: bindings, layout: localizer, sizingProvider: {
             WheelSizing.standard.scaled(by: InterfaceStyle.shared.preferences.wheelSize.scale)
-        }, byteFormatter: FileByteSizeFormatter(), localizer: localizer)
+        }, byteFormatter: FileByteSizeFormatter(), localizer: localizer,
+                       onSelectionChange: { WheelHaptics.shared.selectionChanged() })
     }
 
     func makeCoordinator(

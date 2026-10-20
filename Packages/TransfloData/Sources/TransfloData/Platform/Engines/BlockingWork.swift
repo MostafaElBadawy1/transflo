@@ -30,8 +30,10 @@ enum BlockingWork {
         _ work: @escaping @Sendable (_ isCancelled: @Sendable () -> Bool) throws(JobError) -> Value
     ) async throws(JobError) -> Value {
         let flag = CancellationFlag()
-        return try await withTaskCancellationHandler { () async throws(JobError) -> Value in
-            let result: Result<Value, JobError> = await withCheckedContinuation { continuation in
+        // The handler's closure doesn't throw: the typed error travels in a Result, so this compiles the
+        // same on toolchains whose withTaskCancellationHandler isn't generic over the thrown error.
+        let result: Result<Value, JobError> = await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
                 queue.async {
                     Thread.current.threadDictionary[cancellationKey] = flag
                     defer { Thread.current.threadDictionary.removeObject(forKey: cancellationKey) }
@@ -49,8 +51,8 @@ enum BlockingWork {
                     }
                 }
             }
-            return try result.get()
         } onCancel: { flag.set() }
+        return try result.get()
     }
 }
 

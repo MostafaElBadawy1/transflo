@@ -5,34 +5,27 @@ import TransfloDomain
 import TransfloDomainTestSupport
 
 struct ToolPreferencesViewModelTests {
-    @Test func persistsCompressionChoicesAndValidatedBudgets() {
+    @Test func persistsPresetChoicesAndNaming() {
         let repository = InMemoryToolPreferences()
         let model = ToolPreferencesViewModel(repository: repository)
         #expect(model.choice == .medium)
-        model.select(.target)
-        model.setTargetMegabytes(1.5)
-        #expect(repository.loadCompressionGoal() == .targetBytes(1_500_000))
-        model.setTargetMegabytes(.nan)
-        model.setTargetMegabytes(-1)
-        #expect(model.targetMegabytes == 1.5)
-        model.setTargetMegabytes(2000)
-        #expect(model.targetMegabytes == 1000)
-        model.select(.light)
-        #expect(repository.loadCompressionGoal() == .light)
-        model.select(.medium)
-        #expect(repository.loadCompressionGoal() == .medium)
-        model.select(.strong)
-        #expect(repository.loadCompressionGoal() == .strong)
+        for choice: CompressionChoice in [.light, .medium, .strong] {
+            model.select(choice)
+            #expect(repository.loadCompressionGoal() == choice.goal)
+            #expect(ToolPreferencesViewModel(repository: repository).choice == choice)
+        }
         model.selectNameStyle(.word)
-        #expect(repository.loadNameStyle() == .word)
         #expect(ToolPreferencesViewModel(repository: repository).nameStyle == .word)
     }
 
-    @Test func restoresFractionalMegabytes() {
-        let repository = InMemoryToolPreferences(goal: .targetBytes(250_000))
+    @Test(arguments: [CompressionGoal.targetBytes(250_000), .percentage(35)])
+    func migratesLegacyBudgetsToBalanced(goal: CompressionGoal) {
+        let repository = InMemoryToolPreferences(goal: goal)
         let model = ToolPreferencesViewModel(repository: repository)
-        #expect(model.choice == .target && model.targetMegabytes == 0.25)
+        #expect(model.choice == .medium)
+        #expect(repository.loadCompressionGoal() == .medium)
     }
+
     @Test func unchangedOriginalHasAnExplicitCompletionMessage() {
         let record = JobRecord(id: UUID(), option: WheelOption(.tool(.compress)), items: [],
                                origin: WheelPoint(x: 0, y: 0), state: .succeeded(outputs: []),

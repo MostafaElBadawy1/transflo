@@ -47,8 +47,8 @@ Xcode's **Product → Test Plan** menu selects the same checked-in plans:
 
 | Plan | Coverage | When to run |
 | --- | --- | --- |
-| Fast (default) | All app unit tests and 22 UI regressions: persistence, sizing, language switching, keyboard, onboarding, wheels, jobs and shelf | Cmd-U and every pull request |
-| Extended | 18 additional UI tests: every remaining editor, locale/theme variants, all-tab sizing, multi-file wheels and automatic result dismissal | Before merging; CI on `main` and manual runs |
+| Fast (default) | All app unit tests and 24 UI regressions: persistence, sizing, language switching, keyboard, onboarding, wheels, jobs, shelf and updates | Cmd-U and every pull request |
+| Extended | 25 additional UI tests: every remaining editor, editor fit in both languages, locale/theme variants, all-tab sizing, multi-file wheels, update results and automatic result dismissal | Before merging; CI on `main` and manual runs |
 | Marketing | 5 screenshot flows for README assets; no unit tests | Explicit capture only |
 
 Fast and Extended are disjoint; run both for all functional UI coverage. Package
@@ -88,7 +88,7 @@ every supported path except iWork Automation and legacy PPT/XLS input. The opt-i
 In Debug, `-TransfloOnboardingPage <1–5>` opens a particular page for inspection.
 The ordinary launch shows the tour only until Done is selected.
 
-UI tests drive the app through debug-only launch arguments (`-TransfloPreviewWheel`, `-TransfloPreviewEditor`, `-TransfloPreviewJobs` and others; see `Transflo/App/LaunchArgument.swift`), because real Finder drags can't be automated.
+UI tests drive the app through debug-only launch arguments (`-TransfloPreviewWheel`, `-TransfloPreviewEditor`, `-TransfloPreviewJobs`, `-TransfloPreviewUpdate` and others; see `Transflo/App/LaunchArgument.swift`), because real Finder drags can't be automated.
 
 ## README screenshots
 ```bash
@@ -144,7 +144,7 @@ folder access on the first drop from each folder. Release steps are in [APP_STOR
 ```
 
 - **Output:** writes `build/releases/Transflo-<version>-<architecture>.dmg` and never overwrites an existing one. `--output-dir` changes the location.
-- **Look:** the window follows the system appearance; `--style branded` uses the illustrated background instead.
+- **Look:** an illustrated installer window (title, arrow, hint) on Transflo's dark brand background. Finder keeps disk-image backgrounds fixed, so it looks the same in light and dark mode.
 - **Python:** needed for Finder layout metadata. The two pinned dependencies in `scripts/dmg/requirements.txt` install into a temporary environment and are removed afterwards. Set `TRANSFLO_DMG_PYTHON` to reuse an interpreter that already has them.
 - **Contents:** the installer carries the license, the third-party notices and the ffmpeg build info, with local paths removed.
 

@@ -3,7 +3,18 @@ import TransfloDomain
 
 /// Checks public release metadata only. Installation remains an explicit user action.
 public struct GitHubUpdateChecker: AppUpdateChecking {
-    public static let releasesURL = URL(string: "https://github.com/Ali-Fayed/transflo/releases/latest")
+    public let downloadURL: URL = {
+        guard let url = URL(string: "https://github.com/Ali-Fayed/transflo/releases/latest") else {
+            preconditionFailure("Invalid GitHub release URL")
+        }
+        return url
+    }()
+    static let endpoint: URL = {
+        guard let url = URL(string: "https://api.github.com/repos/Ali-Fayed/transflo/releases/latest") else {
+            preconditionFailure("Invalid GitHub API endpoint")
+        }
+        return url
+    }()
     private let session: URLSession
 
     public init(session: URLSession = .shared) {
@@ -11,10 +22,7 @@ public struct GitHubUpdateChecker: AppUpdateChecking {
     }
 
     public func check(currentVersion: String) async throws -> AppUpdateStatus {
-        guard let endpoint = URL(string: "https://api.github.com/repos/Ali-Fayed/transflo/releases/latest") else {
-            throw URLError(.badURL)
-        }
-        var request = URLRequest(url: endpoint, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        var request = URLRequest(url: Self.endpoint, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
         request.setValue("Transflo-Update-Checker", forHTTPHeaderField: "User-Agent")
@@ -29,20 +37,10 @@ public struct GitHubUpdateChecker: AppUpdateChecking {
         guard statusCode == 200 else { throw URLError(.badServerResponse) }
         let release = try JSONDecoder().decode(GitHubAppRelease.self, from: data)
         guard !release.draft, !release.prerelease,
-              let latest = versionComponents(release.tagName),
-              let current = versionComponents(currentVersion) else { throw URLError(.cannotParseResponse) }
-        return current.lexicographicallyPrecedes(latest)
-            ? .available(version: release.tagName) : .upToDate
-    }
-
-    /// Release builds use three numeric components; reject malformed or prerelease tags.
-    private static func versionComponents(_ value: String) -> [UInt]? {
-        let normalized = value.hasPrefix("v") ? String(value.dropFirst()) : value
-        let parts = normalized.split(separator: ".", omittingEmptySubsequences: false)
-        guard parts.count == 3,
-              parts.allSatisfy({ !$0.isEmpty && $0.utf8.allSatisfy { (48...57).contains($0) } }) else { return nil }
-        let numbers = parts.compactMap { UInt($0) }
-        return numbers.count == 3 ? numbers : nil
+              let isNewer = ReleaseVersion.isNewer(release.tagName, than: currentVersion) else {
+            throw URLError(.cannotParseResponse)
+        }
+        return isNewer ? .available(version: release.tagName) : .upToDate
     }
 }
 

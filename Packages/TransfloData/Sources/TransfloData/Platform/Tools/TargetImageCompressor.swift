@@ -8,7 +8,8 @@ enum TargetImageCompressor {
         budget: (format: String, bytes: Int64),
         writer: ImageFileWriter,
         to output: URL,
-        isCancelled: () -> Bool
+        isCancelled: () -> Bool,
+        maximumLongEdge: Int? = nil
     ) throws(JobError) {
         guard budget.bytes > 0 else { throw .targetUnreachable }
         guard let size = try? source.resourceValues(forKeys: [.fileSizeKey]).fileSize else { throw .sourceMissing }
@@ -16,8 +17,15 @@ enum TargetImageCompressor {
         let workspace = try TemporaryWorkspace(parent: output.deletingLastPathComponent())
         defer { workspace.remove() }
         let staged = workspace.url.appendingPathComponent(output.lastPathComponent)
-        let decoded = try ImageDecoding.decodeUpright(source)
-        if Int64(size) <= budget.bytes {
+        var decoded = try ImageDecoding.decodeUpright(source)
+        var resized = false
+        if let edge = maximumLongEdge, let smaller = ImageScaling.fit(decoded.image, longEdge: edge) {
+            resized = smaller.width != decoded.image.width || smaller.height != decoded.image.height
+            decoded = ImageDecoding.Decoded(
+                image: smaller, properties: decoded.properties, pointSize: decoded.pointSize
+            )
+        }
+        if Int64(size) <= budget.bytes && !resized {
             do { try FileManager.default.copyItem(at: source, to: staged) } catch { throw .destinationUnavailable }
         } else {
             let encoder = TargetImageEncoder(decoded: decoded, format: budget.format,

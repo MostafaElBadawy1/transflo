@@ -49,7 +49,7 @@ struct VerificationFixtures: Sendable {
         let output = home.appendingPathComponent("qr.png")
         guard !FileManager.default.fileExists(atPath: output.path) else { return }
         let filter = try #require(CIFilter(name: "CIQRCodeGenerator"))
-        filter.setValue(Data("https://transflo.ali-fayed.com/verification".utf8), forKey: "inputMessage")
+        filter.setValue(Data("https://transfloformac.ali-fayed.com/verification".utf8), forKey: "inputMessage")
         let code = try #require(filter.outputImage).transformed(by: CGAffineTransform(scaleX: 12, y: 12))
         let padded = code.composited(over: CIImage(color: .white).cropped(to: code.extent.insetBy(dx: -48, dy: -48)))
         let image = try #require(CIContext().createCGImage(padded, from: padded.extent))

@@ -7,10 +7,6 @@ from ds_store import DSStore
 from mac_alias import Alias
 
 volume = Path(sys.argv[1])
-style = sys.argv[2] if len(sys.argv) > 2 else "adaptive"
-if style not in ("adaptive", "branded"):
-    raise SystemExit("Unknown installer style")
-branded = style == "branded"
 with DSStore.open(str(volume / ".DS_Store"), "w+") as store:
     store["."]["bwsp"] = {
         "ShowStatusBar": False,
@@ -19,12 +15,18 @@ with DSStore.open(str(volume / ".DS_Store"), "w+") as store:
         "ShowPathbar": False,
         "ShowSidebar": False,
         "SidebarWidth": 0,
-        "WindowBounds": "{{180, 160}, {640, 350}}" if branded else "{{180, 160}, {640, 240}}",
+        "WindowBounds": "{{180, 160}, {640, 350}}",
         "ContainerShowSidebar": False,
     }
     store["."]["icvp"] = {
         "viewOptionsVersion": 1,
-        "backgroundType": 0,
+        # The artwork, over its own charcoal (Finder needs a color with the picture, and keeps both
+        # fixed in light and dark mode).
+        "backgroundType": 2,
+        "backgroundColorRed": 0x12 / 255,
+        "backgroundColorGreen": 0x14 / 255,
+        "backgroundColorBlue": 0x16 / 255,
+        "backgroundImageAlias": Alias.for_file(str(volume / ".background" / "installer.png")).to_bytes(),
         "iconSize": 96.0,
         "textSize": 13.0,
         "gridOffsetX": 0.0,
@@ -37,17 +39,7 @@ with DSStore.open(str(volume / ".DS_Store"), "w+") as store:
         "showItemInfo": False,
         "arrangeBy": "none",
     }
-    if branded:
-        options = store["."]["icvp"]
-        options.update({
-            "backgroundType": 2,
-            "backgroundColorRed": 0.96,
-            "backgroundColorGreen": 0.97,
-            "backgroundColorBlue": 0.965,
-            "backgroundImageAlias": Alias.for_file(str(volume / ".background" / "installer.png")).to_bytes(),
-        })
-        store["."]["icvp"] = options
     store["."]["vSrn"] = ("long", 1)
     store["."]["icvl"] = ("type", b"icnv")
-    store["Transflo.app"]["Iloc"] = (170, 175 if branded else 100)
-    store["Applications"]["Iloc"] = (470, 175 if branded else 100)
+    store["Transflo.app"]["Iloc"] = (170, 175)
+    store["Applications"]["Iloc"] = (470, 175)

@@ -1,11 +1,13 @@
 import AppKit
 import TransfloDomain
+import TransfloSystem
 
 /// Receives file drags over the wheel and reports positions relative to the wheel center (y up).
 /// In keyboard mode it also takes keys, clicks and pointer movement.
 final class WheelDropView: NSView {
     var onHover: ((WheelPoint?) -> Bool)?
     var onDrop: ((WheelPoint) -> Bool)?
+    var onPromisedDrop: ((WheelPoint, @escaping PromisedFileDelivery) -> Bool)?
     var onKey: ((WheelKeyCommand) -> Void)?
     var onClick: ((WheelPoint) -> Bool)?
     var onPointer: ((WheelPoint) -> Void)?
@@ -13,6 +15,7 @@ final class WheelDropView: NSView {
     /// callbacks do that, and a resting cursor must not disturb the highlight.
     var tracksPointer = false
     private var heldModifiers: NSEvent.ModifierFlags = []
+    private var clickPoint: WheelPoint?
 
     private static let steps: [UInt16: Bool] = [124: true, 125: true, 123: false, 126: false]
     private static let confirmKeys: Set<UInt16> = [36, 76]
@@ -23,7 +26,7 @@ final class WheelDropView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        registerForDraggedTypes([.fileURL])
+        registerForDraggedTypes([.fileURL] + PromisedFiles.draggedTypes)
         addTrackingArea(NSTrackingArea(
             rect: .zero, options: [.mouseMoved, .activeAlways, .inVisibleRect], owner: self, userInfo: nil
         ))
@@ -64,7 +67,15 @@ final class WheelDropView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
-        _ = onClick?(offset(of: event.locationInWindow))
+        let point = offset(of: event.locationInWindow)
+        clickPoint = point
+        onPointer?(point)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard let point = clickPoint else { return }
+        clickPoint = nil
+        _ = onClick?(point)
     }
 
     override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
@@ -84,7 +95,13 @@ final class WheelDropView: NSView {
     }
 
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
-        onDrop?(offset(of: sender.draggingLocation)) ?? false
+        let pasteboard = sender.draggingPasteboard
+        let hasFiles = pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true])
+        let promises = hasFiles ? [] : PromisedFiles.receivers(on: pasteboard)
+        guard !promises.isEmpty else { return onDrop?(offset(of: sender.draggingLocation)) ?? false }
+        return onPromisedDrop?(offset(of: sender.draggingLocation)) { completion in
+            PromisedFiles.receive(promises, completion: completion)
+        } ?? false
     }
 
     /// `.copy` only over a wedge, so the original is never moved and elsewhere shows "no drop".

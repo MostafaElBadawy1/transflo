@@ -26,17 +26,20 @@ enum AppDimensions {
         static let hairline: CGFloat = 1
         /// Rings and frames marking a selection.
         static let selection: CGFloat = 2
+        /// The keyboard focus ring (in the accent color) and its gap from the control.
+        static let focus: CGFloat = 2.5
+        static let focusGap: CGFloat = 2
     }
 
     enum Wheel {
         /// Ring size with up to `compactWedgeCount` wedges.
-        static let compactOuterRadius: CGFloat = 150
+        static let compactOuterRadius: CGFloat = 140
         /// Ring size with `fullWedgeCount` wedges (one full page).
-        static let fullOuterRadius: CGFloat = 216
+        static let fullOuterRadius: CGFloat = 200
         static let compactWedgeCount = 6
         static let fullWedgeCount = 12
         /// Leaves room in the hub for the hovered option's name on two lines.
-        static let innerRadius: CGFloat = 64
+        static let innerRadius: CGFloat = 60
         /// Space kept clear on each side of a wedge label.
         static let labelInset: CGFloat = 6
         /// Even space between neighboring petals, and between the petals and the hub well.
@@ -44,7 +47,7 @@ enum AppDimensions {
         /// Space between the petals and the disc's rim.
         static let petalInset: CGFloat = 8
         static let petalCornerRadius: CGFloat = 20
-        static let hubPillHeight: CGFloat = 36
+        static let hubPillHeight: CGFloat = 32
         static let hubLabelTracking: CGFloat = 0.4
         /// Clear margin around the ring so the floating shadow is not clipped.
         static let margin: CGFloat = 16
@@ -145,18 +148,23 @@ enum AppDimensions {
         static let rowThumbnailSize: CGFloat = 40
         static let unselectedOpacity: Double = 0.45
         static let renamePreviewHeight: CGFloat = 150
+        static let assemblyPreviewHeight: CGFloat = 180
+        static let assemblyThumbnailSize: CGFloat = 48
+        static let menuPickerWidth: CGFloat = 220
+        static let textEditorHeight: CGFloat = 90
     }
 
     enum Window {
         /// Stable native segmented-control width while the live preview changes.
         static let settingsControlWidth: CGFloat = 238
-        static let settingsWidth: CGFloat = 480
+        static let settingsWidth: CGFloat = 700
         /// Settings sizes its height to the current tab's content, between these bounds.
         static let settingsMinContentHeight: CGFloat = 260
         static let settingsMaxHeight: CGFloat = 620
         /// The native tab bar's height above the content.
         static let settingsTabChrome: CGFloat = 30
         static let accentSwatchSize: CGFloat = 25
+        static let aboutIconSize: CGFloat = 56
         static let welcomeWidth: CGFloat = 500
         static let welcomePadding: CGFloat = 32
     }

@@ -28,28 +28,6 @@ public struct FileToolEngine: ToolEngine {
         let urls = request.items.map(\.url)
         let names = RenamePattern.names(pattern, originals: urls.map { $0.deletingPathExtension().lastPathComponent },
                                         start: start)
-        var renamed: [URL] = []
-        do throws(JobError) {
-            for (url, name) in zip(urls, names) {
-                if isCancelled() { throw .cancelled }
-                guard FileManager.default.fileExists(atPath: url.path) else { throw .sourceMissing }
-                var candidate = url.deletingLastPathComponent().appendingPathComponent(name)
-                if !url.pathExtension.isEmpty { candidate.appendPathExtension(url.pathExtension) }
-                guard candidate.standardizedFileURL != url.standardizedFileURL else {
-                    renamed.append(url)
-                    continue
-                }
-                let destination = try naming.execute(for: candidate, pathExtension: nil)
-                do {
-                    try FileManager.default.moveItem(at: url, to: destination)
-                } catch {
-                    throw .destinationUnavailable
-                }
-                renamed.append(destination)
-            }
-        } catch {
-            throw renamed.isEmpty ? error : .partialFailure(completed: renamed, cause: error)
-        }
-        return renamed
+        return try FileRenamer.rename(urls, to: names, naming: naming, isCancelled: isCancelled)
     }
 }

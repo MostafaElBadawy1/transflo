@@ -21,12 +21,20 @@ final class WheelVisibilityViewModel {
 
     private(set) var wheel = WheelKind.convert
     private(set) var visibility: WheelVisibility
+    private(set) var usage: WheelUsage
     @ObservationIgnored private let groupsByWheel: [WheelKind: [Group]]
     @ObservationIgnored private let repository: any WheelVisibilityRepository
+    @ObservationIgnored private let usageRepository: (any WheelUsageRepository)?
 
-    init(choices: ListWheelChoicesUseCase, repository: any WheelVisibilityRepository) {
+    init(
+        choices: ListWheelChoicesUseCase,
+        repository: any WheelVisibilityRepository,
+        usage: (any WheelUsageRepository)? = nil
+    ) {
         self.repository = repository
+        usageRepository = usage
         visibility = repository.loadWheelVisibility()
+        self.usage = usage?.loadWheelUsage() ?? .standard
         groupsByWheel = Dictionary(uniqueKeysWithValues: WheelKind.allCases.map { kind in
             (kind, choices.execute(wheel: kind).map(WheelChoicePresentation.group(for:)))
         })
@@ -68,5 +76,29 @@ final class WheelVisibilityViewModel {
 
     private func save() {
         repository.saveWheelVisibility(visibility)
+    }
+
+    /// Whether pins and ordering are offered (they need somewhere to be saved).
+    var supportsOrdering: Bool { usageRepository != nil }
+
+    func isPinned(_ row: Row) -> Bool { usage.isPinned(row.option) }
+
+    func setPinned(_ row: Row, _ pinned: Bool) {
+        usage.setPinned(row.option, pinned)
+        saveUsage()
+    }
+
+    func setLastUsedFirst(_ enabled: Bool) {
+        usage.lastUsedFirst = enabled
+        saveUsage()
+    }
+
+    func setOrdersByFrequency(_ enabled: Bool) {
+        usage.ordersByFrequency = enabled
+        saveUsage()
+    }
+
+    private func saveUsage() {
+        usageRepository?.saveWheelUsage(usage)
     }
 }

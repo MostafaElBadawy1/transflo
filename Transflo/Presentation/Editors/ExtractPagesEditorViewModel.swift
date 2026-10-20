@@ -7,6 +7,8 @@ import TransfloDomain
 final class ExtractPagesEditorViewModel: ToolEditorModel {
     private(set) var thumbnails: [Data] = []
     private(set) var selected: Set<Int> = []
+    var rangeText = ""
+    private(set) var rangeInvalid = false
 
     @ObservationIgnored private let item: URL
     @ObservationIgnored private let previews: any ToolPreviewProviding
@@ -35,6 +37,18 @@ final class ExtractPagesEditorViewModel: ToolEditorModel {
     func toggle(_ page: Int) {
         guard (0..<pageCount).contains(page) else { return }
         if selected.remove(page) == nil { selected.insert(page) }
+    }
+
+    func selectOdd() { selected = Set((0..<pageCount).filter { $0.isMultiple(of: 2) }) }
+    func selectEven() { selected = Set((0..<pageCount).filter { !$0.isMultiple(of: 2) }) }
+    func invert() { selected = Set(0..<pageCount).subtracting(selected) }
+    func applyRange() {
+        guard let pages = PageRangeSelection.parse(rangeText, pageCount: pageCount) else {
+            rangeInvalid = true
+            return
+        }
+        selected = pages
+        rangeInvalid = false
     }
 
     func selectAll() {

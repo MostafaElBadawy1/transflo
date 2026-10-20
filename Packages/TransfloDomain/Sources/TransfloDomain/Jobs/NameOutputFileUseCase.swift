@@ -15,6 +15,12 @@ public struct NameOutputFileUseCase: Sendable {
         self.checker = checker
     }
 
+    /// A copy for one batch that also avoids every name it has already handed out, so files that
+    /// convert in parallel never share an output name.
+    public func forBatch() -> NameOutputFileUseCase {
+        NameOutputFileUseCase(checker: ReservingFileExistenceChecker(base: checker))
+    }
+
     /// - Parameter pathExtension: The output extension (may be compound, e.g. `tar.gz`),
     ///   or `nil` to keep the source's.
     public func execute(for source: URL, pathExtension: String?) throws(JobError) -> URL {
@@ -32,6 +38,7 @@ public struct NameOutputFileUseCase: Sendable {
                 candidate.appendPathExtension(fileExtension)
             }
             if !checker.fileExists(at: candidate) {
+                (checker as? ReservingFileExistenceChecker)?.reserve(candidate)
                 return candidate
             }
         }

@@ -7,6 +7,7 @@ struct AppWheelSample: View {
     let wedges: [WheelWedgeContent]
     let title: L10nKey
     let glyph: String
+    var highlightedIndex: Int?
     @Environment(Localizer.self) private var localizer
     @State private var shown = false
 
@@ -14,7 +15,7 @@ struct AppWheelSample: View {
         AppRadialWheel(wedges: wedges, geometry: WheelGeometry(
             wedgeCount: wedges.count, innerRadius: AppDimensions.Wheel.innerRadius,
             outerRadius: AppDimensions.Wheel.compactOuterRadius, isRightToLeft: localizer.isRightToLeft
-        ), highlightedIndex: nil, hubTitle: title, hubGlyph: glyph,
+        ), highlightedIndex: highlightedIndex, hubTitle: title, hubGlyph: glyph,
                        hubDetail: FileByteSizeFormatter().string(bytes: 2_400_000, locale: localizer.locale))
         .scaleEffect(shown ? 1 : AppDimensions.Onboarding.wheelStartScale)
         .rotationEffect(.degrees(shown ? 0 : startTurn))

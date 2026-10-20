@@ -6,7 +6,10 @@ enum ExtractionBudget {
     static let maximumEntries = 20_000
 
     static func permits(_ folder: URL) -> Bool {
-        guard let entries = FileManager.default.enumerator(
+        // The enumerator yields nothing for a missing folder, which would otherwise pass as "empty".
+        var isFolder: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isFolder), isFolder.boolValue,
+              let entries = FileManager.default.enumerator(
             at: folder, includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey], options: []
         ) else { return false }
         var count = 0

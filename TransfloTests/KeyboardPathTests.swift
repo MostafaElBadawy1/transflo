@@ -112,7 +112,7 @@ struct KeyboardWheelTests {
     @Test("Return on More turns the page and keeps More highlighted")
     func confirmOnMore() {
         let sut = makeSUT()
-        sut.show(.tools, options: ToolKind.allCases.map { WheelOption(.tool($0)) })
+        sut.show(.convert, options: ToolKind.allCases.map { WheelOption(.tool($0)) })
         sut.stepHighlight(clockwise: false)
         #expect(sut.state.slots[sut.state.highlightedIndex ?? 0] == .more)
         #expect(sut.activateHighlighted() == nil)

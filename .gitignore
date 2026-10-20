@@ -17,8 +17,18 @@ Vendor/ffmpeg/bin/
 # Private working notes, local tool state and signing material
 .local-notes/
 docs/plans/
+docs/reviews/
+.private/
+secrets/
+credentials/
 .codex/
 .claude/
+*.p8
+*.cer
+*.der
+*.certSigningRequest
+*.keychain
+*.keychain-db
 *.p12
 *.pfx
 *.mobileprovision

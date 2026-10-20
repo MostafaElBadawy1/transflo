@@ -1,11 +1,10 @@
 import Observation
 import TransfloDomain
 
-/// Persists instant-tool defaults and naming through the Repository boundary.
+/// Persists preset compression defaults and output naming.
 @Observable
 final class ToolPreferencesViewModel {
     private(set) var choice: CompressionChoice
-    private(set) var targetMegabytes: Double
     private(set) var nameStyle: ToolNameStyle
     @ObservationIgnored private let repository: any ToolPreferencesRepository
 
@@ -13,31 +12,18 @@ final class ToolPreferencesViewModel {
         self.repository = repository
         let goal = repository.loadCompressionGoal()
         choice = CompressionChoice(goal)
-        if case .targetBytes(let bytes) = goal {
-            targetMegabytes = min(1000, max(0.1, Double(bytes) / 1_000_000))
-        } else {
-            targetMegabytes = 1
-        }
         nameStyle = repository.loadNameStyle()
+        // Previously saved byte/percentage budgets must not remain hidden active defaults.
+        if goal != choice.goal { repository.saveCompressionGoal(choice.goal) }
     }
 
     func select(_ choice: CompressionChoice) {
         self.choice = choice
-        saveGoal()
-    }
-
-    func setTargetMegabytes(_ value: Double) {
-        guard value.isFinite, value > 0 else { return }
-        targetMegabytes = min(1000, max(0.1, value))
-        if choice == .target { saveGoal() }
+        repository.saveCompressionGoal(choice.goal)
     }
 
     func selectNameStyle(_ style: ToolNameStyle) {
         nameStyle = style
         repository.saveNameStyle(style)
-    }
-
-    private func saveGoal() {
-        repository.saveCompressionGoal(choice.goal(megabytes: targetMegabytes))
     }
 }

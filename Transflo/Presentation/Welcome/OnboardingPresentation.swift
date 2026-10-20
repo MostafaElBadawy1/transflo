@@ -9,9 +9,8 @@ enum OnboardingPresentation {
                 WheelWedgeContent(id: $0, label: .verbatim($0), symbol: nil)
             }
         case .tools:
-            [ToolKind.compress, .resize, .crop, .addBackground, .redact, .annotate].map {
-                WheelPresentation.wedge(for: WheelOption(.tool($0)))
-            }
+            [WheelSlot.option(WheelOption(.tool(.compress))), .group(.geometry), .group(.appearance),
+             .group(.metadata), .group(.names), .group(.recipes)].map(WheelPresentation.wedge(for:))
         case .actions:
             ActionKind.allCases.map { WheelPresentation.wedge(for: WheelOption(.action($0))) }
         }

@@ -14,7 +14,8 @@ struct KeyboardFactory {
             selection: FinderSelectionReader(),
             wheel: wheel,
             hints: hints,
-            pointer: { WheelPoint(x: NSEvent.mouseLocation.x, y: NSEvent.mouseLocation.y) }
+            pointer: { WheelPoint(x: NSEvent.mouseLocation.x, y: NSEvent.mouseLocation.y) },
+            clipboard: PasteboardClipboardReader()
         )
         serviceProvider = FinderServiceProvider(launcher: launcher)
     }

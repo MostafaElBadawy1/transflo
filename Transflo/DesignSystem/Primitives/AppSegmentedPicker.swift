@@ -48,15 +48,16 @@ struct AppSegmentedPicker<Value: Hashable>: View {
         func updateNSView(_ control: NSSegmentedControl, context: Context) {
             context.coordinator.parent = self
             control.isEnabled = isEnabled
-            control.segmentCount = labels.count
+            if control.segmentCount != labels.count { control.segmentCount = labels.count }
             control.setAccessibilityLabel(label)
             control.selectedSegmentBezelColor = NSColor(AppColors.accent)
             for (index, title) in labels.enumerated() {
-                control.setLabel(title, forSegment: index)
-                control.setWidth(segmentWidth(title), forSegment: index)
+                if control.label(forSegment: index) != title { control.setLabel(title, forSegment: index) }
+                let width = segmentWidth(title)
+                if control.width(forSegment: index) != width { control.setWidth(width, forSegment: index) }
             }
-            control.selectedSegment = options.firstIndex { $0.value == selection } ?? -1
-            control.invalidateIntrinsicContentSize()
+            let selected = options.firstIndex { $0.value == selection } ?? -1
+            if control.selectedSegment != selected { control.selectedSegment = selected }
         }
 
         func sizeThatFits(

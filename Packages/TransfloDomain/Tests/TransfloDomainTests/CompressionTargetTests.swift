@@ -74,6 +74,12 @@ struct CompressionTargetTests {
         let prepared = useCase.execute(option, items: [jpg])
         #expect(prepared.option.settings == .compress(.targetBytes(1_000_000)))
         #expect(prepared.originalWithinTarget)
+        let explicit = WheelOption(.tool(.compress), settings: .compressImage(
+            goal: .targetBytes(1_000_000), maximumLongEdge: nil))
+        #expect(useCase.execute(explicit, items: [jpg]).originalWithinTarget)
+        let resized = WheelOption(.tool(.compress), settings: .compressImage(
+            goal: .targetBytes(1_000_000), maximumLongEdge: 1280))
+        #expect(!useCase.execute(resized, items: [jpg]).originalWithinTarget)
         let pdf = useCase.execute(option, items: [URL(fileURLWithPath: "/tmp/document.pdf")])
         #expect(pdf.option.settings == .compress(.medium))
         #expect(!pdf.originalWithinTarget)

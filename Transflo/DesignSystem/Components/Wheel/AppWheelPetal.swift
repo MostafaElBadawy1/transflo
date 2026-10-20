@@ -19,7 +19,8 @@ struct AppWheelPetal: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isHighlighted ? [.isButton, .isSelected] : .isButton)
-        .accessibilityHint(localizer.string(.wheelPetalHint))
+        .accessibilityHint(localizer.string(content.id.hasPrefix("group.") ? .wheelGroupHint
+            : (content.id == "back" ? .wheelBackHint : .wheelPetalHint)))
     }
 
     @ViewBuilder private var surface: some View {

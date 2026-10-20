@@ -4,14 +4,15 @@ import TransfloDomain
 /// Where a petal's icon and label sit and how big they are, derived from the ring so they stay
 /// centered and in proportion for any number of options.
 ///
-/// The block is centered on the petal's area centroid (its visual center). The font scales with
+/// The block is centered on the petal's area centroid (its visual center), or the ring's middle
+/// for wide petals. The font scales with
 /// the ring and shrinks if the petal is narrow; the icon, spacing and tracking follow the font.
 nonisolated struct WheelLabelMetrics: Equatable {
-    static let fontRange: ClosedRange<Double> = 9.5...13
+    static let fontRange: ClosedRange<Double> = 9...11.5
     /// Font size per point of ring radius before the width limit applies.
-    static let fontPerRadius = 0.07
+    static let fontPerRadius = 0.062
     /// Font size per point of label width (keeps about six uppercase letters per line).
-    static let fontPerWidth = 0.16
+    static let fontPerWidth = 0.145
 
     /// Distance from the wheel center to the middle of the label block.
     let radius: Double
@@ -36,16 +37,18 @@ nonisolated struct WheelLabelMetrics: Equatable {
         width = max(min(across, depth) - sideInset * 2, 0)
         let preferred = min(geometry.outerRadius * Self.fontPerRadius, width * Self.fontPerWidth)
         fontSize = min(max(preferred, Self.fontRange.lowerBound), Self.fontRange.upperBound)
-        iconSize = fontSize * 1.55
-        spacing = fontSize * 0.4
-        tracking = fontSize * 0.05
+        iconSize = fontSize * 1.45
+        spacing = fontSize * 0.35
+        tracking = fontSize * 0.04
     }
 
-    /// The area centroid's distance from the center for an annular sector of half-angle `halfSpan`.
+    /// The area centroid's distance from the center for an annular sector of half-angle `halfSpan`,
+    /// never inward of the ring's middle: a wide petal's centroid (two or three options) falls next
+    /// to the hub, which would push the label against the petal's inner edge.
     private static func centroid(inner: Double, outer: Double, halfSpan: Double, isFullRing: Bool) -> Double {
         let ringArea = outer * outer - inner * inner
         guard !isFullRing, ringArea > 0, halfSpan > 0 else { return (inner + outer) / 2 }
         let radial = 2.0 / 3.0 * (pow(outer, 3) - pow(inner, 3)) / ringArea
-        return radial * sin(halfSpan) / halfSpan
+        return max(radial * sin(halfSpan) / halfSpan, (inner + outer) / 2)
     }
 }

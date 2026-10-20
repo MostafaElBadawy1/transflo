@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 import TransfloDomain
 
@@ -7,12 +8,17 @@ final class UpdateViewModel {
     private(set) var availableVersion: String?
     private(set) var isChecking = false
     let currentVersion: String
-    private let checker: any AppUpdateChecking
+    let text: UpdateChannelText
+    @ObservationIgnored private let checker: any AppUpdateChecking
 
-    init(checker: any AppUpdateChecking, currentVersion: String) {
+    init(checker: any AppUpdateChecking, text: UpdateChannelText, currentVersion: String) {
         self.checker = checker
+        self.text = text
         self.currentVersion = currentVersion
     }
+
+    /// The release page or the App Store listing.
+    var downloadURL: URL { checker.downloadURL }
 
     func check() async {
         guard !isChecking else { return }
@@ -26,10 +32,10 @@ final class UpdateViewModel {
                 availableVersion = version
                 message = .updateAvailable
             case .upToDate: message = .updateCurrent
-            case .noPublishedRelease: message = .updateNoRelease
+            case .noPublishedRelease: message = text.noRelease
             }
         } catch {
-            message = .updateFailed
+            message = text.failed
         }
     }
 }

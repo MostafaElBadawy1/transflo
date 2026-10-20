@@ -15,7 +15,7 @@ struct WheelView: View {
                 hubDetail: viewModel.hubDetail,
                 itemCount: viewModel.state.summary?.itemCount ?? 1
             )
-            .id("\(kind)-\(viewModel.state.page)")
+            .id("\(kind)-\(viewModel.state.group?.rawValue ?? "root")-\(viewModel.state.page)")
             .transition(.scale(scale: 0.85).combined(with: .opacity))
         }
     }

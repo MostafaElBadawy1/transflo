@@ -21,7 +21,9 @@ struct SettingsViewModelTests {
                 appearanceApplier: appearanceApplier,
                 wheelChoices: ListWheelChoicesUseCase(catalog: ConversionCatalog(formats: [], paths: []),
                                                       tools: ToolCatalog(tools: [])),
-                wheelVisibility: InMemoryWheelVisibilityRepository()
+                wheelVisibility: InMemoryWheelVisibilityRepository(),
+                updates: UpdateFactory(checker: StubUpdateChecker(), text: .gitHub,
+                                       preferences: InMemoryUpdatePreferences(), currentVersion: "0.1.0")
             ).makeViewModel()
         }
     }
@@ -132,5 +134,16 @@ struct SettingsViewModelTests {
     func errorMessages() {
         #expect(SettingsErrorState.launchAtLoginRequiresApproval.messageKey == .launchAtLoginRequiresApproval)
         #expect(SettingsErrorState.launchAtLoginFailed.messageKey == .launchAtLoginFailed)
+    }
+
+    @Test("shared quick controls refresh login changes made during onboarding")
+    func refreshLoginStatus() throws {
+        let harness = makeHarness()
+        let model = harness.makeSUT()
+        try harness.launchAtLogin.setEnabled(true)
+        #expect(!model.state.launchAtLogin)
+        model.refreshLaunchAtLoginStatus()
+        #expect(model.state.launchAtLogin)
+        #expect(harness.launchAtLogin.receivedRequests == [true])
     }
 }

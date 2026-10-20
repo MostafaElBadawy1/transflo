@@ -124,7 +124,7 @@ struct WheelCoordinatorTests {
         #expect(harness.preparer.requests.map(\.action) == [.move])
         #expect(harness.preparer.requests.first?.point == point)
         #expect(harness.scheduler.scheduled.isEmpty)
-        let folder = URL(fileURLWithPath: "/Users/ali/Projects", isDirectory: true)
+        let folder = URL(fileURLWithPath: "/Users/example/Projects", isDirectory: true)
         harness.preparer.pendingReady?(.destination(folder))
         let move = WheelOption(.action(.move), settings: .destination(folder))
         #expect(harness.scheduler.scheduled == [.init(option: move, items: [file], point: point)])

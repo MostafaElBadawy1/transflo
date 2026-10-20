@@ -65,7 +65,8 @@ struct WelcomeView: View {
     private func wheelPage(_ wheel: WheelKind) -> some View {
         AppOnboardingPage {
             AppWheelSample(wedges: OnboardingPresentation.wedges(for: wheel),
-                           title: WheelPresentation.title(for: wheel), glyph: glyph(for: wheel))
+                           title: WheelPresentation.title(for: wheel), glyph: glyph(for: wheel),
+                           highlightedIndex: wheel == .tools ? 1 : nil)
         } content: {
             AppText(WheelPresentation.title(for: wheel), style: .welcomeTitle).appEntrance(step: 1)
             AppText(OnboardingPresentation.description(for: wheel), color: .secondary)
@@ -80,7 +81,7 @@ struct WelcomeView: View {
                 }
             }
             .appEntrance(step: 4)
-            AppText(.onboardingDrop, style: .caption, color: .secondary)
+            AppText(wheel == .tools ? .onboardingToolsDrop : .onboardingDrop, style: .caption, color: .secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .appEntrance(step: 5)
         }

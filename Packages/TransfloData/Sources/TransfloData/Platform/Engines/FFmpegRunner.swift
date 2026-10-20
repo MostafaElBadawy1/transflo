@@ -10,10 +10,19 @@ enum FFmpegRunner {
         category: "FFmpeg"
     )
     static let safetyFlags = ["-hide_banner", "-nostdin", "-n", "-progress", "pipe:1", "-nostats"]
-    /// Apple's hardware H.264 encoder fails intermittently when too many sessions open at once,
-    /// so those encodes share a small pool and get one retry for transient failures.
+    /// Apple's hardware encoders fail intermittently when too many sessions open at once, so those
+    /// encodes share a small pool. They also decode in hardware; the one retry decodes in software.
     static let hardwareEncoder = "h264_videotoolbox"
+    static let hardwareEncoders: Set<String> = [hardwareEncoder, "hevc_videotoolbox"]
     static let hardwareGate = ConcurrencyGate(limit: 4)
+
+    /// `arguments` with hardware decoding requested for every input.
+    static func hardwareDecoding(_ arguments: [String]) -> [String] {
+        arguments.enumerated().flatMap { index, argument in
+            let requested = index >= 2 && arguments[index - 2] == "-hwaccel"
+            return argument == "-i" && !requested ? ["-hwaccel", "videotoolbox", argument] : [argument]
+        }
+    }
 
     /// - Parameter totalDuration: Seconds of output expected, when the first input's banner
     ///   duration is not the whole (e.g. merges).
@@ -53,20 +62,19 @@ enum FFmpegRunner {
         totalDuration: Double?,
         progress: @escaping @Sendable (Double) -> Void
     ) async throws(JobError) {
-        guard arguments.contains(hardwareEncoder) else {
+        guard !hardwareEncoders.isDisjoint(with: arguments) else {
             try await runOnce(binary: binary, arguments: arguments, totalDuration: totalDuration, progress: progress)
             return
         }
-        let attempt = { @Sendable () async throws(JobError) in
-            try await runOnce(binary: binary, arguments: arguments, totalDuration: totalDuration, progress: progress)
-        }
         try await hardwareGate.run { () async throws(JobError) in
             do throws(JobError) {
-                try await attempt()
+                try await runOnce(binary: binary, arguments: hardwareDecoding(arguments),
+                                  totalDuration: totalDuration, progress: progress)
             } catch JobError.failed {
-                // Only the private staged file belongs to this attempt.
+                // Only the private staged file belongs to this attempt. Retry with software decoding.
                 if let output = arguments.last { try? FileManager.default.removeItem(atPath: output) }
-                try await attempt()
+                try await runOnce(binary: binary, arguments: arguments,
+                                  totalDuration: totalDuration, progress: progress)
             }
         }
     }

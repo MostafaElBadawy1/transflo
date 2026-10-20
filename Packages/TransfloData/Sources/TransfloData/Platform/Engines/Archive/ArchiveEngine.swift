@@ -47,7 +47,7 @@ public struct ArchiveEngine: ConversionEngine {
         return [request.destination]
     }
 
-    private func extract(
+    func extract(
         _ source: URL,
         format: String,
         into folder: URL,

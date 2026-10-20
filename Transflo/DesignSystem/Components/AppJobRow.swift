@@ -7,8 +7,10 @@ struct AppJobRow: View {
     let detail: AppTextContent
     let status: AppTextContent
     let isFailed: Bool
+    var timeLeft: AppTextContent?
     let onCancel: (() -> Void)?
     let onReveal: (() -> Void)?
+    var onUndo: (() -> Void)?
 
     var body: some View {
         HStack(spacing: AppDimensions.Spacing.medium) {
@@ -21,10 +23,18 @@ struct AppJobRow: View {
                         .truncationMode(.middle)
                 }
                 .lineLimit(1)
-                AppText(status, style: .caption, color: isFailed ? .danger : .secondary)
-                    .lineLimit(2)
+                HStack(spacing: AppDimensions.Spacing.small) {
+                    AppText(status, style: .caption, color: isFailed ? .danger : .secondary)
+                        .lineLimit(2)
+                    if let timeLeft {
+                        AppText(timeLeft, style: .caption, color: .secondary).monospacedDigit()
+                    }
+                }
             }
             Spacer(minLength: 0)
+            if let onUndo {
+                AppIconButton(symbol: .undoJob, label: .jobUndo, action: onUndo)
+            }
             if let onReveal {
                 AppIconButton(symbol: .revealJob, label: .jobReveal, action: onReveal)
             }

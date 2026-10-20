@@ -9,19 +9,38 @@ final class KeyboardLaunchCoordinator {
     private let wheel: any KeyboardWheelOpening
     private let hints: any HintPresenting
     private let pointer: () -> WheelPoint
+    private let clipboard: (any ClipboardFilesReading)?
 
     init(
         hotKeys: any HotKeyRegistering,
         selection: any FinderSelectionReading,
         wheel: any KeyboardWheelOpening,
         hints: any HintPresenting,
-        pointer: @escaping () -> WheelPoint
+        pointer: @escaping () -> WheelPoint,
+        clipboard: (any ClipboardFilesReading)? = nil
     ) {
         self.hotKeys = hotKeys
         self.selection = selection
         self.wheel = wheel
         self.hints = hints
         self.pointer = pointer
+        self.clipboard = clipboard
+    }
+
+    /// Convert Clipboard: opens the wheel for the copied files or image, or says there is nothing to take.
+    func openClipboard() {
+        let point = pointer()
+        guard let clipboard else { return }
+        do throws(JobError) {
+            let items = try clipboard.files()
+            guard !items.isEmpty else {
+                hints.showHint(.hintClipboardEmpty, near: point)
+                return
+            }
+            open(items, at: point)
+        } catch {
+            hints.showHint(JobPresentation.message(for: error), near: point)
+        }
     }
 
     /// Listens for `hotKey`. Returns `false` if the system refused it (another app owns it).

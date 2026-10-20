@@ -4,8 +4,8 @@ import AppKit
 enum PromoStoryboard {
     /// Each wheel's radius as a share of its screenshot's width (measured on the captures).
     private enum WheelShare {
-        static let convert: CGFloat = 0.3063
-        static let tools: CGFloat = 0.4112
+        static let convert: CGFloat = 0.3455
+        static let tools: CGFloat = 0.3252
         static let actions: CGFloat = 0.2864
     }
 
@@ -17,16 +17,16 @@ enum PromoStoryboard {
             DragDemoScene(wheel: try assets.wheel("wheel-convert-en-dark", radiusFraction: WheelShare.convert)),
             WheelTrioScene(wheels: [
                 .init(image: try assets.wheel("wheel-convert-en-dark", radiusFraction: WheelShare.convert), key: "⇧",
-                      title: "Convert", detail: "262 conversions"),
+                      title: "Convert", detail: "288 conversions"),
                 .init(image: try assets.wheel("wheel-tools-en-dark", radiusFraction: WheelShare.tools), key: "⌘",
-                      title: "Tools", detail: "26 tools"),
+                      title: "Tools", detail: "31 tools · grouped"),
                 .init(image: try assets.wheel("wheel-actions-en-dark", radiusFraction: WheelShare.actions), key: "⌃",
                       title: "Actions", detail: "6 file actions")
             ]),
             ShowcaseScene(
                 eyebrow: "Settings › Wheel",
                 headline: "Only what you use.",
-                detail: "Untick the formats, tools and actions you never need. Fewer choices, bigger petals.",
+                detail: "Related tools share a group. Hover or click, then choose a tool. Back gives you time to move.",
                 shots: [.init(image: wheelSettings, frame: fit(wheelSettings, centerX: 1330, top: 100, height: 880))],
                 duration: 4.8
             )
@@ -49,18 +49,18 @@ enum PromoStoryboard {
                 detail: "Editors open right where you dropped the file. No other app needed.",
                 shots: [
                     .init(image: try assets.image("editor-addBackground-dark"),
-                          frame: CGRect(x: 860, y: 170, width: 940, height: 606)),
+                          frame: CGRect(x: 820, y: 130, width: 900, height: 703)),
                     .init(image: try assets.image("editor-crop-dark"),
-                          frame: CGRect(x: 1430, y: 540, width: 390, height: 398), delay: 0.35)
+                          frame: CGRect(x: 1500, y: 470, width: 330, height: 480), delay: 0.35)
                 ]
             ),
             ShowcaseScene(
                 eyebrow: "Compress",
-                headline: "Hit an exact file size.",
-                detail: "Set a size limit and Transflo lands just under it. Outputs never replace the original.",
+                headline: "Choose your balance.",
+                detail: "Best, Balanced or Smaller. Set your default in General. Originals stay untouched.",
                 shots: [
                     .init(image: try assets.image("settings-output-dark"),
-                          frame: CGRect(x: 900, y: 175, width: 840, height: 686))
+                          frame: CGRect(x: 900, y: 150, width: 880, height: 747))
                 ],
                 duration: 4.6
             ),
@@ -82,7 +82,7 @@ enum PromoStoryboard {
                 detail: "Accent colors, wheel size, your own trigger keys and Liquid Glass.",
                 shots: [
                     .init(image: try assets.image("settings-customization-dark"),
-                          frame: CGRect(x: 1080, y: 110, width: 634, height: 862))
+                          frame: CGRect(x: 900, y: 140, width: 900, height: 838))
                 ],
                 duration: 4.6
             )

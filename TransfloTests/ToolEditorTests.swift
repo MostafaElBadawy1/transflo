@@ -138,7 +138,7 @@ struct ToolEditorTests {
             metadata: StubMetadataReader(),
             localizer: Localizer(language: .english)
         )
-        #expect(ToolEditorCoordinator.editableTools.count == 16)
+        #expect(ToolEditorCoordinator.editableTools.count == 26)
         for tool in ToolKind.allCases {
             #expect(sut.canEdit(tool) == ToolEditorCoordinator.editableTools.contains(tool))
             #expect((sut.makeSession(tool, items: [file, file]) != nil) == sut.canEdit(tool))

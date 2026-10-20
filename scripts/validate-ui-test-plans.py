@@ -6,13 +6,15 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+# Screenshot flows: they run only through scripts/capture-screenshots.sh, never as regressions.
+MARKETING_CLASSES = ("MarketingScreenshotUITests/", "CustomizationScreenshotUITests/")
 
 
 def main():
     discovered = set()
     for source in (ROOT / "TransfloUITests").glob("*.swift"):
         text = source.read_text()
-        classes = re.findall(r"final class (\w+): TransfloUITestCase", text)
+        classes = re.findall(r"final class (\w+): (?:TransfloUITestCase|MarketingCaptureTestCase)", text)
         methods = re.findall(r"^    func (test\w+)\(", text, re.MULTILINE)
         if methods:
             assert len(classes) == 1, f"Expected one test class in {source.name}"
@@ -29,7 +31,7 @@ def main():
         assert not ui.get("skippedTests"), f"{name}: use explicit, exclusive selections"
         selected = ui["selectedTests"]
         assert selected, f"{name}: empty UI selection"
-        assert all(test.startswith("MarketingScreenshotUITests/") == (name == "Marketing")
+        assert all(test.startswith(MARKETING_CLASSES) == (name == "Marketing")
                    for test in selected), f"{name}: marketing/functional tests mixed"
         if name == "Marketing":
             environment = plan["defaultOptions"].get("environmentVariableEntries", [])

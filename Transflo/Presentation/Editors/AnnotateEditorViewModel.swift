@@ -9,12 +9,19 @@ final class AnnotateEditorViewModel: ToolEditorModel {
     static let minimumDrag = 0.01
 
     private(set) var preview: ToolPreview = .empty
-    private(set) var annotations: [Annotation] = []
+    var annotations: [Annotation] { history.marks }
     private(set) var draft: Annotation?
     var tool = MarkupTool.box
     var color = AppMarkupPalette.defaultInk
     var weight = MarkupWeight.medium
     var text = ""
+
+    private(set) var history = PagedMarkHistory<Annotation>()
+    var canUndo: Bool { history.canUndo }
+    var canRedo: Bool { history.canRedo }
+    var selectedPage: Int { history.page }
+    private(set) var pageCount = 1
+    var editedPageCount: Int { history.changesByPage.count }
 
     @ObservationIgnored private let item: URL
     @ObservationIgnored private let format: FormatDescriptor?
@@ -32,21 +39,34 @@ final class AnnotateEditorViewModel: ToolEditorModel {
     var marks: [Annotation] { draft.map { annotations + [$0] } ?? annotations }
 
     var settings: ToolSettings? {
-        guard preview.thumbnail != nil, !annotations.isEmpty else { return nil }
-        return .annotate(annotations)
+        guard preview.thumbnail != nil else { return nil }
+        if isPDF { return history.changesByPage.isEmpty ? nil : .pageAnnotations(history.changesByPage) }
+        return annotations.isEmpty ? nil : .annotate(annotations)
     }
 
     func load() async {
         preview = await previews.preview(of: item, format: format)
+        pageCount = max(1, preview.pageCount ?? 1)
+    }
+
+    func selectPage(_ index: Int) async {
+        guard isPDF, (0..<pageCount).contains(index), index != selectedPage else { return }
+        history.select(page: index)
+        draft = nil
+        preview = .empty
+        let loaded = await previews.pagePreview(of: item, index: index)
+        guard index == selectedPage, !Task.isCancelled else { return }
+        preview = loaded
     }
 
     /// Starts a mark; in Text mode a click places the typed text right away.
     func begin(at point: UnitPoint) {
+        guard preview.thumbnail != nil else { return }
         switch tool {
         case .text:
             let content = text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !content.isEmpty else { return }
-            annotations.append(mark(.text(content), [point]))
+            commit(annotations + [mark(.text(content), [point])])
         case .pen: draft = mark(.freehand, [point])
         case .box: draft = mark(.rectangle, [point, point])
         case .arrow: draft = mark(.arrow, [point, point])
@@ -63,16 +83,20 @@ final class AnnotateEditorViewModel: ToolEditorModel {
     func end() {
         defer { draft = nil }
         guard let current = draft, Self.isVisible(current) else { return }
-        annotations.append(current)
+        commit(annotations + [current])
     }
 
     func undo() {
-        _ = annotations.popLast()
+        history.undo()
+        draft = nil
     }
-
-    func clear() {
-        annotations.removeAll()
+    func redo() {
+        history.redo()
+        draft = nil
     }
+    func clear() { commit([]); draft = nil }
+    func remove(at index: Int) { history.remove(at: index) }
+    private func commit(_ next: [Annotation]) { history.commit(next) }
 
     private func mark(_ kind: Annotation.Kind, _ points: [UnitPoint]) -> Annotation {
         Annotation(kind: kind, points: points, color: color, weight: weight.rawValue)

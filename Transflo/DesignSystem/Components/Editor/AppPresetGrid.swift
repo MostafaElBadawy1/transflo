@@ -20,6 +20,7 @@ struct AppPresetGrid: View {
                                           lineWidth: AppDimensions.Stroke.selection))
                 }
                 .buttonStyle(.plain)
+                .appFocusRing(RoundedRectangle(cornerRadius: AppDimensions.Radius.small))
                 .accessibilityLabel(localizer.string(AppBackgroundPresets.label(preset)))
                 .accessibilityAddTraits(fill == .gradient(preset) ? [.isSelected] : [])
                 .accessibilityIdentifier("transflo.background.\(preset.rawValue)")

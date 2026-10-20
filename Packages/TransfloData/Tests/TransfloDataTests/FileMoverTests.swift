@@ -59,8 +59,8 @@ struct FileMoverTests {
         defer { defaults.removePersistentDomain(forName: suite) }
         let sut = UserDefaultsRecentFoldersRepository(defaults: defaults)
         #expect(sut.load().isEmpty)
-        sut.save([URL(fileURLWithPath: "/Users/ali/Projects"), URL(fileURLWithPath: "/Volumes/Disk")])
-        #expect(sut.load().map(\.path) == ["/Users/ali/Projects", "/Volumes/Disk"])
+        sut.save([URL(fileURLWithPath: "/Users/example/Projects"), URL(fileURLWithPath: "/Volumes/Disk")])
+        #expect(sut.load().map(\.path) == ["/Users/example/Projects", "/Volumes/Disk"])
         #expect(sut.load().allSatisfy { $0.hasDirectoryPath })
     }
 }

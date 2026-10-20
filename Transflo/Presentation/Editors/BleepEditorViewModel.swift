@@ -14,9 +14,9 @@ final class BleepEditorViewModel: ToolEditorModel {
     var start = 0.0
     var end = 0.0
 
-    @ObservationIgnored private let item: URL
+    @ObservationIgnored let item: URL
     @ObservationIgnored private let format: FormatDescriptor?
-    @ObservationIgnored private let previews: any ToolPreviewProviding
+    @ObservationIgnored let previews: any ToolPreviewProviding
 
     init(item: URL, format: FormatDescriptor?, previews: any ToolPreviewProviding) {
         self.item = item
@@ -24,11 +24,23 @@ final class BleepEditorViewModel: ToolEditorModel {
         self.previews = previews
     }
 
-    var duration: Double { preview.duration ?? 0 }
-    var canAdd: Bool { duration > 0 && end - start >= Self.minimumLength }
+    var duration: Double {
+        guard let duration = preview.duration, duration.isFinite, duration > 0 else { return 0 }
+        return duration
+    }
+    var canAdd: Bool {
+        duration.isFinite && duration > 0 && start.isFinite && end.isFinite
+            && start >= 0 && end <= duration && end - start >= Self.minimumLength
+    }
+    func clear() { spans.removeAll() }
+    func nextSelection() {
+        guard end.isFinite, end < duration else { return }
+        start = end
+        end = min(duration, start + Self.initialLength)
+    }
 
     var settings: ToolSettings? {
-        guard duration > 0, !spans.isEmpty else { return nil }
+        guard duration.isFinite, duration > 0, !spans.isEmpty else { return nil }
         return .bleep(spans)
     }
 

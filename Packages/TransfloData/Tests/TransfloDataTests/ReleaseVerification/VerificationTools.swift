@@ -79,7 +79,7 @@ struct VerificationTools {
             let outputs = try await VerificationSupport.timed { try await engine.run(request) { _ in } }
             produced = outputs
             if tool == .readCode {
-                guard copier.copied.last == "https://transflo.ali-fayed.com/verification" else {
+                guard copier.copied.last == "https://transfloformac.ali-fayed.com/verification" else {
                     throw VerificationSupport.Failure.unreadable("QR payload")
                 }
             } else if tool == .rename {

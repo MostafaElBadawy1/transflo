@@ -11,9 +11,9 @@ final class TrimEditorViewModel: ToolEditorModel {
     var start = 0.0
     var end = 0.0
 
-    @ObservationIgnored private let item: URL
+    @ObservationIgnored let item: URL
     @ObservationIgnored private let format: FormatDescriptor?
-    @ObservationIgnored private let previews: any ToolPreviewProviding
+    @ObservationIgnored let previews: any ToolPreviewProviding
 
     init(item: URL, format: FormatDescriptor?, previews: any ToolPreviewProviding) {
         self.item = item
@@ -21,12 +21,19 @@ final class TrimEditorViewModel: ToolEditorModel {
         self.previews = previews
     }
 
-    var duration: Double { preview.duration ?? 0 }
+    var duration: Double {
+        guard let duration = preview.duration, duration.isFinite, duration > 0 else { return 0 }
+        return duration
+    }
 
     var settings: ToolSettings? {
-        guard duration > 0, end - start >= Self.minimumLength, start > 0 || end < duration else { return nil }
+        guard duration.isFinite, duration > 0, start.isFinite, end.isFinite, start >= 0, end <= duration,
+              end - start >= Self.minimumLength, start > 0 || end < duration else { return nil }
         return .trim(start: start, end: end)
     }
+
+    func selectFraction(_ lower: Double, _ upper: Double) { start = duration * lower; end = duration * upper }
+    func reset() { start = 0; end = duration }
 
     func load() async {
         preview = await previews.preview(of: item, format: format)

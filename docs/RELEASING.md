@@ -52,14 +52,28 @@ The sandboxed edition is built and uploaded with `./scripts/release-appstore.sh`
 and review notes are in [APP_STORE.md](APP_STORE.md). Ship the same `MARKETING_VERSION` to both channels.
 
 ## In-app update checks
-The menu bar’s **Check for Updates…** item checks the latest public stable release on
+**Check for Updates…** and the daily update check read the latest public stable release on
 `Ali-Fayed/transflo`. Publish releases with a numeric `vMAJOR.MINOR.PATCH` tag matching
 `MARKETING_VERSION`, and attach the installer before publishing. Drafts and prereleases
-are not offered. Users open the release page to download and install the update manually.
-The app only contacts GitHub when the user requests a check.
+are not offered. Users open the release page (or run `brew upgrade --cask transflo`) to install.
 
-## Signing and notarization (when you have a Developer ID)
-Builds are ad-hoc signed until then. The release notes and the cask tell people how to allow the first launch. Once you have a *Developer ID Application* certificate:
+## Signing and notarization
+Public releases must be Developer ID signed and notarized; otherwise macOS refuses to open the
+downloaded app ("Apple could not verify Transflo is free of malware").
+
+With Xcode signed in to the team (Settings › Accounts), one command does everything:
+
+```bash
+TRANSFLO_DEVELOPER_ID_TEAM=<TEAMID> ./scripts/release.sh
+```
+
+Xcode archives the Release build, signs the app and its ffmpeg helpers with the team's
+cloud-managed *Developer ID Application* certificate and the hardened runtime, and submits it to
+Apple's notary service. The script waits for notarization (usually a few minutes), exports the
+stapled app, checks it with `stapler` and Gatekeeper (`spctl`), and only then builds the DMG, cask
+and notes. No credentials pass through the script.
+
+Without an Xcode account (for example on CI), use a local certificate and a notary profile instead:
 
 ```bash
 xcrun notarytool store-credentials transflo-notary --apple-id <your Apple ID> --team-id <TEAMID>

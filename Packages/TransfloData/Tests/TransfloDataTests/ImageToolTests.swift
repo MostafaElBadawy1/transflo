@@ -193,7 +193,7 @@ struct ImageToolTests {
 
 @Suite("Tool catalog file")
 struct ToolCatalogFileTests {
-    @Test("tools.json lists all 26 tools with valid rules")
+    @Test("tools.json lists every tool with valid rules")
     func bundled() throws {
         let catalog = try BundledToolCatalogLoader().load()
         #expect(catalog.tools.map(\.kind) == ToolKind.allCases)

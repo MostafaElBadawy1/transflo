@@ -17,9 +17,23 @@ struct ResizeEditorView: View {
                 AppToggle(key: .editorKeepProportions, isOn: $model.keepsProportions)
             }
             HStack(spacing: AppDimensions.Spacing.small) {
-                AppButton(key: .editorHalfSize) { model.scale(50) }
-                AppButton(key: .editorQuarterSize) { model.scale(25) }
+                AppButton(key: .editorHalfSize, variant: .tertiary) { model.scale(50) }
+                AppButton(key: .editorQuarterSize, variant: .tertiary) { model.scale(25) }
             }
+            AppNumberField(label: .editorScalePercentage, value: $model.percentage, range: 1...400, unit: .unitPercent)
+            AppButton(key: .editorApplyScale, variant: .tertiary) { model.applyPercentage() }
+            AppText(.editorFitLongEdge, style: .headline)
+            AppFlowLayout(spacing: AppDimensions.Spacing.small, isRightToLeft: false) {
+                ForEach([1280, 1920, 2560], id: \.self) { edge in
+                    AppButton(label: .formatted(.editorPixelsValue, [String(edge)]), variant: .tertiary) {
+                        model.fitLongEdge(edge)
+                    }
+                }
+            }
+            AppText(.editorActualPixels, arguments: [String(model.outputWidth), String(model.outputHeight)],
+                    style: .caption, color: .secondary)
+            if model.enlarges { SettingsFootnote(message: .editorEnlargeHint) }
+            AppButton(key: .editorReset, variant: .tertiary) { model.reset() }
         }
     }
 

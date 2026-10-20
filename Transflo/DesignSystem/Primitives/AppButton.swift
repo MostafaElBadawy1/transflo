@@ -11,30 +11,66 @@ struct AppButton: View {
     }
 
     @Environment(Localizer.self) private var localizer
-    let key: L10nKey
+    let label: AppTextContent
     var variant: Variant = .secondary
     var isEnabled = true
     var shortcut: KeyboardShortcut?
     let action: () -> Void
 
+    init(
+        key: L10nKey,
+        variant: Variant = .secondary,
+        isEnabled: Bool = true,
+        shortcut: KeyboardShortcut? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.init(label: .key(key), variant: variant, isEnabled: isEnabled, shortcut: shortcut, action: action)
+    }
+
+    /// A button whose title is data rather than copy, such as a preset value ("50 %", "1920 px").
+    init(
+        label: AppTextContent,
+        variant: Variant = .secondary,
+        isEnabled: Bool = true,
+        shortcut: KeyboardShortcut? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.label = label
+        self.variant = variant
+        self.isEnabled = isEnabled
+        self.shortcut = shortcut
+        self.action = action
+    }
+
+    private var title: String {
+        switch label {
+        case .key(let key): localizer.string(key)
+        case let .formatted(key, arguments): localizer.string(key, arguments: arguments)
+        case .verbatim(let text): text
+        }
+    }
+
     var body: some View {
         switch variant {
         case .primary:
-            Button(localizer.string(key), action: action)
+            Button(title, action: action)
                 .buttonStyle(.borderedProminent)
                 .tint(AppColors.accent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(!isEnabled)
+                .appFocusRing(Capsule())
         case .secondary:
-            Button(localizer.string(key), action: action)
+            Button(title, action: action)
                 .buttonStyle(.bordered)
                 .keyboardShortcut(.cancelAction)
                 .disabled(!isEnabled)
+                .appFocusRing(Capsule())
         case .tertiary:
-            Button(localizer.string(key), action: action)
+            Button(title, action: action)
                 .buttonStyle(.bordered)
                 .keyboardShortcut(shortcut)
                 .disabled(!isEnabled)
+                .appFocusRing(Capsule())
         }
     }
 }

@@ -43,6 +43,8 @@ enum ProcessRunnerSync {
         process.waitUntilExit()
         guard !BlockingWork.isCancelled,
               let data = try? Data(contentsOf: capture), data.count <= 16 * 1024 * 1024 else { return nil }
+        // Preserve readable helper output even when diagnostics contain invalid UTF-8.
+        // swiftlint:disable:next optional_data_string_conversion
         return Output(status: process.terminationStatus, stdout: String(decoding: data, as: UTF8.self))
     }
 }

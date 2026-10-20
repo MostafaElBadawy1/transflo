@@ -19,6 +19,7 @@ struct ActionFactory {
         let performers: [ActionKind: any FileActionPerforming] = [
             .airDrop: AirDropAction(sharer: AirDropSharer()),
             .float: FloatAction(shelf: shelf),
+            .archive: ArchiveFilesAction(naming: NameOutputFileUseCase(checker: files)),
             .copy: CopyFilesAction(copier: PasteboardFileCopier()),
             .move: MoveAction(mover: FileMover(checker: files, directories: files), recents: recents),
             .copyPath: CopyPathAction(

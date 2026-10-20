@@ -16,7 +16,7 @@ struct WheelPagingTests {
     @Test("twelve or fewer options fit on one ring without More")
     func onePage() {
         let sut = makeSUT()
-        sut.show(.tools, options: Array(all.prefix(12)))
+        sut.show(.convert, options: Array(all.prefix(12)))
         #expect(sut.pageCount == 1)
         #expect(sut.state.slots.count == 12)
         #expect(!sut.state.slots.contains(.more))
@@ -25,7 +25,7 @@ struct WheelPagingTests {
     @Test("longer lists show eleven options plus More per page, and pages wrap")
     func pages() {
         let sut = makeSUT()
-        sut.show(.tools, options: all)
+        sut.show(.convert, options: all)
         #expect(sut.pageCount == 3)
         #expect(sut.state.slots.count == 12)
         #expect(sut.state.slots.last == .more)
@@ -33,8 +33,9 @@ struct WheelPagingTests {
         sut.turnPage()
         #expect(sut.state.slots.first == .option(all[11]))
         sut.turnPage()
-        #expect(sut.state.slots == all.suffix(4).map(WheelSlot.option) + [.more])
-        #expect(sut.state.geometry.wedgeCount == 5)
+        let rest = all.count - 22
+        #expect(sut.state.slots == all.suffix(rest).map(WheelSlot.option) + [.more])
+        #expect(sut.state.geometry.wedgeCount == rest + 1)
         sut.turnPage()
         #expect(sut.state.page == 0)
     }
@@ -42,7 +43,7 @@ struct WheelPagingTests {
     @Test("More is not droppable and resting on it turns the page")
     func dwell() async throws {
         let sut = makeSUT(dwell: .milliseconds(1))
-        sut.show(.tools, options: all)
+        sut.show(.convert, options: all)
         // Wedge 11 of 12 (More) sits just left of the top in a clockwise layout.
         let onMore = WheelPoint(x: -26, y: 97)
         #expect(sut.updatePointer(onMore) == false)
@@ -55,7 +56,7 @@ struct WheelPagingTests {
     @Test("leaving More before the dwell keeps the page")
     func leaveMore() async throws {
         let sut = makeSUT(dwell: .milliseconds(50))
-        sut.show(.tools, options: all)
+        sut.show(.convert, options: all)
         sut.updatePointer(WheelPoint(x: -26, y: 97))
         sut.updatePointer(WheelPoint(x: 0, y: 100))
         try await Task.sleep(for: .milliseconds(120))

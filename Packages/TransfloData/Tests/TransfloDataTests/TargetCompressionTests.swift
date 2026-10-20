@@ -71,12 +71,16 @@ struct TargetCompressionTests {
         let repository = UserDefaultsSettingsRepository(defaults: defaults)
         #expect(repository.loadCompressionGoal() == .medium)
         #expect(repository.loadNameStyle() == .parentheses)
-        for goal: CompressionGoal in [.light, .medium, .strong, .targetBytes(1_500_000)] {
+        for goal: CompressionGoal in [.light, .medium, .strong] {
             repository.saveCompressionGoal(goal)
             #expect(repository.loadCompressionGoal() == goal)
         }
         repository.saveNameStyle(.word)
         #expect(repository.loadNameStyle() == .word)
+        for goal: CompressionGoal in [.targetBytes(1_500_000), .percentage(35)] {
+            repository.saveCompressionGoal(goal)
+            #expect(repository.loadCompressionGoal() == .medium)
+        }
         repository.saveCompressionGoal(.targetBytes(-1))
         #expect(repository.loadCompressionGoal() == .medium)
         defaults.set(Data("invalid".utf8), forKey: SettingsStorageKey.compressionGoal)

@@ -123,8 +123,15 @@ jobs:
         run: |
           out="$TRANSFLO_RELEASE_OUTPUT_DIR"
           dmg="$out/Transflo-$VERSION-arm64.dmg"
+          # Review builds are ad-hoc signed. Never publish one over a notarized public release.
+          mount="$(mktemp -d "$RUNNER_TEMP/transflo-public-release.XXXXXX")"
+          trap 'hdiutil detach "$mount" -quiet || true; rmdir "$mount" || true' EXIT
+          hdiutil attach "$dmg" -readonly -nobrowse -mountpoint "$mount" -quiet
+          codesign --verify --deep --strict "$mount/Transflo.app"
+          xcrun stapler validate "$mount/Transflo.app"
+          spctl --assess --type execute "$mount/Transflo.app"
           if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "v$VERSION" "$dmg" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload "v$VERSION" "$dmg" --repo "$GITHUB_REPOSITORY"
           else
             gh release create "v$VERSION" "$dmg" --repo "$GITHUB_REPOSITORY" --verify-tag --latest \
               --title "Transflo $VERSION" --notes-file "$out/release-notes-$VERSION.md"

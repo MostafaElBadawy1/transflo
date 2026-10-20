@@ -25,7 +25,7 @@ public struct MediaToolPreviewProvider: ToolPreviewProviding {
             guard let ffprobe, let info = try? await FFprobe.info(binary: ffprobe, file: url) else { return .empty }
             let thumbnail = info.hasVideo ? await frame(of: url, at: min(1, (info.duration ?? 0) / 10)) : nil
             return ToolPreview(width: info.width, height: info.height, duration: info.duration, pageCount: nil,
-                               thumbnail: thumbnail)
+                               thumbnail: thumbnail, frameRate: info.frameRate)
         default:
             guard format?.id.rawValue == "pdf" else { return .empty }
             return (try? await BlockingWork.run { () throws(JobError) in try Self.pdfPreview(url) }) ?? .empty
@@ -82,6 +82,30 @@ public struct MediaToolPreviewProvider: ToolPreviewProviding {
             }
             return thumbnails
         }) ?? []
+    }
+
+    public func waveform(of url: URL) async -> Data? {
+        guard let ffmpeg, let workspace = try? TemporaryWorkspace() else { return nil }
+        defer { workspace.remove() }
+        let output = workspace.url.appendingPathComponent("waveform.png")
+        let status = await ProcessRunner.run(executable: ffmpeg,
+            arguments: ["-hide_banner", "-nostdin", "-loglevel", "error", "-i", url.path,
+                        "-filter_complex", "aformat=channel_layouts=mono,showwavespic=s=1000x120:colors=0x4AB5A6",
+                        "-frames:v", "1", "-update", "1", output.path],
+            onStdoutLine: { _ in }, onStderrLine: { _ in })
+        return status == 0 ? try? Data(contentsOf: output) : nil
+    }
+
+    public func pagePreview(of url: URL, index: Int) async -> ToolPreview {
+        (try? await BlockingWork.run { () throws(JobError) in
+            let document = try PDFKitEngine.open(url)
+            guard let page = document.page(at: index) else { throw .failed }
+            let bounds = page.bounds(for: .mediaBox)
+            let dpi = 72 * 900 / max(bounds.width, bounds.height, 1)
+            let image = try PDFPageImageExporter.render(page, dpi: dpi)
+            return ToolPreview(width: image.width, height: image.height, duration: nil,
+                               pageCount: document.pageCount, thumbnail: try PNGWriter.data(image))
+        }) ?? .empty
     }
 
     private static func imagePreview(_ url: URL) throws(JobError) -> ToolPreview {

@@ -10,6 +10,7 @@ struct AppCropOverlay: View {
 
     let rect: NormalizedRect
     let onChange: (NormalizedRect, Corner?) -> Void
+    var showsGrid = false
     @State private var dragStart: NormalizedRect?
 
     var body: some View {
@@ -29,6 +30,16 @@ struct AppCropOverlay: View {
                     .frame(width: frame.width, height: frame.height)
                     .offset(x: frame.minX, y: frame.minY)
                     .gesture(drag(size: size, corner: nil))
+                if showsGrid {
+                    Path { path in
+                        for third in [1.0 / 3, 2.0 / 3] {
+                            path.move(to: CGPoint(x: frame.minX + frame.width * third, y: frame.minY))
+                            path.addLine(to: CGPoint(x: frame.minX + frame.width * third, y: frame.maxY))
+                            path.move(to: CGPoint(x: frame.minX, y: frame.minY + frame.height * third))
+                            path.addLine(to: CGPoint(x: frame.maxX, y: frame.minY + frame.height * third))
+                        }
+                    }.stroke(.white.opacity(0.5), lineWidth: 0.5).allowsHitTesting(false)
+                }
                 ForEach(Corner.allCases, id: \.self) { corner in
                     Rectangle()
                         .fill(AppColors.accent)

@@ -102,6 +102,22 @@ final class AddBackgroundEditorViewModel: ToolEditorModel {
         }
     }
 
+    var composition: Int {
+        if style.padding == 0.05 && style.corners == 0.02 && style.shadow == 10 { return 0 }
+        if style.padding == 0.12 && style.corners == 0.04 && style.shadow == 35 { return 1 }
+        if style.padding == 0.22 && style.corners == 0.06 && style.shadow == 50 { return 2 }
+        return -1
+    }
+    func applyComposition(_ preset: Int) {
+        update {
+            switch preset {
+            case 0: $0.padding = 0.05; $0.corners = 0.02; $0.shadow = 10
+            case 2: $0.padding = 0.22; $0.corners = 0.06; $0.shadow = 50
+            default: $0.padding = 0.12; $0.corners = 0.04; $0.shadow = 35
+            }
+        }
+    }
+
     func reset() { update { $0 = initialStyle } }
 
     func cancelPreview() {

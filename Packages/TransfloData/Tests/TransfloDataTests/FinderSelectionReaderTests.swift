@@ -7,8 +7,8 @@ import TransfloDomain
 struct FinderSelectionReaderTests {
     @Test("paths become file URLs; folders keep their trailing slash; noise is dropped")
     func parsing() {
-        let urls = FinderSelectionReader.urls(from: ["/Users/ali/a b.png", "/Users/ali/Album/", "", "oops"])
-        #expect(urls.map(\.path) == ["/Users/ali/a b.png", "/Users/ali/Album"])
+        let urls = FinderSelectionReader.urls(from: ["/Users/example/a b.png", "/Users/example/Album/", "", "oops"])
+        #expect(urls.map(\.path) == ["/Users/example/a b.png", "/Users/example/Album"])
         #expect(urls.map(\.hasDirectoryPath) == [false, true])
     }
 

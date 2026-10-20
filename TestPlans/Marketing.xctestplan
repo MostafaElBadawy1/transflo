@@ -19,6 +19,10 @@
     {
       "parallelizable": false,
       "selectedTests": [
+        "CustomizationScreenshotUITests/testAccentColors()",
+        "CustomizationScreenshotUITests/testSettingsInAccent()",
+        "CustomizationScreenshotUITests/testSizesAndSurfaces()",
+        "MarketingScreenshotUITests/testAppStoreFeatureScreens()",
         "MarketingScreenshotUITests/testEditors()",
         "MarketingScreenshotUITests/testOnboardingPages()",
         "MarketingScreenshotUITests/testSettingsAndWelcome()",

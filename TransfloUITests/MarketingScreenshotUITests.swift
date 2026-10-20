@@ -3,49 +3,25 @@ import XCTest
 /// README screenshots over a calm branded backdrop. Skipped in normal test runs; run through
 /// `scripts/capture-screenshots.sh` (sets `TRANSFLO_SCREENSHOTS=1`).
 @MainActor
-final class MarketingScreenshotUITests: TransfloUITestCase {
-    override func setUpWithError() throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["TRANSFLO_SCREENSHOTS"] == "1",
-                          "README screenshots run only through scripts/capture-screenshots.sh")
-        continueAfterFailure = false
-    }
-
-    /// `backdrop` puts the branded wallpaper behind floating panels; windows are shot without it.
-    private func launch(
-        _ arguments: [String],
-        language: String = "en",
-        appearance: String = "light",
-        backdrop: Bool = false
-    ) -> XCUIApplication {
-        let app = makeApplication()
-        let captureArguments = [LaunchArgument.screenshotCapture]
-            + (backdrop ? [LaunchArgument.screenshotBackdrop] : [])
-        app.launchArguments = captureArguments + arguments + [
-            "-settings.language", language, "-settings.appearance", appearance
-        ]
-        app.launch()
-        app.activate()
-        return app
-    }
-
-    /// Saves `element` as `readme-<name>`; the capture script turns it into docs/screenshots/<name>.png.
-    private func capture(_ element: XCUIElement, _ name: String) {
-        XCTAssertTrue(element.waitForExistence(timeout: 15), name)
-        let app = XCUIApplication()
-        for _ in 0..<3 {
-            app.activate()
-            // Let activation, glass, async thumbnails and the open animation settle.
-            Thread.sleep(forTimeInterval: 1.2)
-            guard app.state == .runningForeground else { continue }
-            let screenshot = element.screenshot()
-            guard app.state == .runningForeground else { continue }
-            let attachment = XCTAttachment(screenshot: screenshot)
-            attachment.name = "readme-\(name)"
-            attachment.lifetime = .keepAlways
-            add(attachment)
-            return
+final class MarketingScreenshotUITests: MarketingCaptureTestCase {
+    /// Run with DEBUG + APP_STORE so marketing never advertises direct-edition-only actions.
+    func testAppStoreFeatureScreens() throws {
+        #if APP_STORE
+        var app = launch([LaunchArgument.previewWheel, "actions"], appearance: "dark", backdrop: true)
+        let wheel = app.dialogs[WindowIdentifier.wheel]
+        XCTAssertTrue(wheel.waitForExistence(timeout: 10))
+        XCTAssertFalse(wheel.buttons["Terminal"].exists, "Capture with APP_STORE enabled")
+        XCTAssertTrue(wheel.buttons["Archive"].exists)
+        capture(wheel, "appstore-actions-dark")
+        app.terminate()
+        for tool in ["trim", "normalize", "compress"] {
+            app = launch([LaunchArgument.previewEditor, tool], appearance: "dark")
+            capture(app.windows[WindowIdentifier.toolEditor], "editor-\(tool)-dark")
+            app.terminate()
         }
-        XCTFail("Transflo lost focus; refusing an obscured capture. Keep the Mac idle during screenshots.")
+        #else
+        throw XCTSkip("App Store feature captures require DEBUG + APP_STORE compilation conditions")
+        #endif
     }
 
     func testWheels() {
@@ -54,9 +30,16 @@ final class MarketingScreenshotUITests: TransfloUITestCase {
             ("tools", "en", "light"), ("tools", "en", "dark"),
             ("actions", "en", "light"), ("actions", "en", "dark"), ("actions", "ar", "dark")
         ] {
-            let app = launch([LaunchArgument.previewWheel, wheel], language: language, appearance: appearance,
+            let app = launch([LaunchArgument.previewWheel, wheel, LaunchArgument.previewRecipes],
+                             language: language, appearance: appearance,
                              backdrop: true)
             capture(app.dialogs[WindowIdentifier.wheel], "wheel-\(wheel)-\(language)-\(appearance)")
+            if wheel == "tools" {
+                let panel = app.dialogs[WindowIdentifier.wheel]
+                panel.buttons["Recipes"].click()
+                XCTAssertTrue(panel.buttons["Web photo"].waitForExistence(timeout: 5))
+                capture(panel, "wheel-recipes-\(appearance)")
+            }
             app.terminate()
         }
     }
@@ -84,28 +67,35 @@ final class MarketingScreenshotUITests: TransfloUITestCase {
 
     func testSettingsAndWelcome() {
         for appearance in ["light", "dark"] {
-            var app = launch([LaunchArgument.openSettings], appearance: appearance)
-            let settings = app.windows[WindowIdentifier.settings]
-            XCTAssertTrue(settings.waitForExistence(timeout: 15))
-            settings.radioButtons["Customization"].click()
-            XCTAssertTrue(settings.staticTexts["Accent color"].waitForExistence(timeout: 5))
-            capture(settings, "settings-customization-\(appearance)")
-            settings.radioButtons["Wheel"].click()
-            XCTAssertTrue(settings.descendants(matching: .any)["settings.wheel.count"].waitForExistence(timeout: 5))
-            capture(settings, "settings-wheel-\(appearance)")
-            settings.radioButtons["Keys"].click()
-            XCTAssertTrue(settings.staticTexts["Tools wheel"].waitForExistence(timeout: 5))
-            if appearance == "light" { capture(settings, "settings-keys") }
-            settings.radioButtons["Output"].click()
-            XCTAssertTrue(settings.buttons["Balanced"].waitForExistence(timeout: 5))
-            // Show the target-size control the README and the video describe.
-            settings.buttons["Size limit"].click()
-            capture(settings, "settings-output-\(appearance)")
-            app.terminate()
-            app = launch([LaunchArgument.openWelcome], appearance: appearance)
+            for (tab, name) in [("general", "customization"), ("general", "output"),
+                                ("wheel", "wheel"), ("recipes", "recipes")] {
+                let app = launch([LaunchArgument.openSettings, LaunchArgument.settingsTab, tab,
+                                  LaunchArgument.previewRecipes], appearance: appearance)
+                let settings = app.windows[WindowIdentifier.settings]
+                XCTAssertTrue(settings.waitForExistence(timeout: 15))
+                if name == "customization" { reveal(settings.staticTexts["Accent color"], in: settings) }
+                if name == "output" {
+                    XCTAssertTrue(settings.buttons["Balanced"].waitForExistence(timeout: 5))
+                    settings.scrollViews.firstMatch.scroll(byDeltaX: 0, deltaY: -180)
+                }
+                if tab == "recipes" {
+                    XCTAssertTrue(settings.buttons["settings.recipes.edit.Web photo"].waitForExistence(timeout: 5))
+                }
+                capture(settings, "settings-\(name)-\(appearance)")
+                app.terminate()
+            }
+            let app = launch([LaunchArgument.openWelcome], appearance: appearance)
             capture(app.windows[WindowIdentifier.welcome], "welcome-\(appearance)")
             app.terminate()
         }
+    }
+
+    private func reveal(_ element: XCUIElement, in window: XCUIElement) {
+        for _ in 0..<12 {
+            if element.isHittable { return }
+            window.scrollViews.firstMatch.scroll(byDeltaX: 0, deltaY: -180)
+        }
+        XCTAssertTrue(element.isHittable)
     }
 
     func testOnboardingPages() {

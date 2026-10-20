@@ -18,10 +18,12 @@ TEST_RUNNER_TRANSFLO_SCREENSHOTS=1 xcodebuild test -quiet -project "$ROOT/Transf
 xcrun xcresulttool export attachments --path "$WORK/shots.xcresult" --output-path "$WORK/attachments" >/dev/null
 
 mkdir -p "$OUT"
-python3 -I - "$WORK/attachments" "$OUT" <<'PY'
+MARKETING="$ROOT/build/marketing/captures"
+mkdir -p "$MARKETING"
+python3 -I - "$WORK/attachments" "$OUT" "$MARKETING" <<'PY'
 import json, pathlib, shutil, sys
-source, destination = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-count = 0
+source, destination, marketing = (pathlib.Path(argument) for argument in sys.argv[1:4])
+count = extra = 0
 for test in json.loads((source / "manifest.json").read_text()):
     for attachment in test["attachments"]:
         name = attachment.get("suggestedHumanReadableName", "")
@@ -29,7 +31,12 @@ for test in json.loads((source / "manifest.json").read_text()):
             target = destination / (name.removeprefix("readme-").split("_0_")[0] + ".png")
             shutil.copyfile(source / attachment["exportedFileName"], target)
             count += 1
-print(f"Saved {count} screenshots to {destination}")
+        elif name.startswith("marketing-"):
+            # Full-resolution customization shots for marketing images; not README assets.
+            target = marketing / (name.removeprefix("marketing-").split("_0_")[0] + ".png")
+            shutil.copyfile(source / attachment["exportedFileName"], target)
+            extra += 1
+print(f"Saved {count} screenshots to {destination} and {extra} marketing captures to {marketing}")
 PY
 # Keep the repository light: at most 1400 px on the long side.
 sips -Z 1400 "$OUT"/*.png >/dev/null

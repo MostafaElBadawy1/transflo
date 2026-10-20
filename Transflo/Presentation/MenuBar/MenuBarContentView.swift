@@ -6,14 +6,13 @@ struct MenuBarContentView: View {
 
     var body: some View {
         AppMenuItem(key: .menuGettingStarted) { coordinator.showWelcome() }
-        if coordinator.supportsUpdateChecks {
-            AppMenuItem(key: .menuCheckUpdates) { coordinator.showUpdates() }
-        }
+        AppMenuItem(key: .menuCheckUpdates) { coordinator.showUpdates() }
         AppMenuItem(key: .menuJobs, shortcut: "j") { coordinator.showJobs() }
+        AppMenuItem(key: .menuConvertClipboard) { coordinator.convertClipboard() }
+        AppMenuItem(key: .menuRecipes) { coordinator.showSettings(tab: .recipes) }
+        AppMenuDivider()
         AppMenuItem(key: .menuSettings, shortcut: ",") { coordinator.showSettings() }
         AppMenuItem(key: .menuAbout) { coordinator.showAbout() }
-        AppMenuItem(key: .menuPrivacy) { coordinator.openPrivacy() }
-        AppMenuItem(key: .menuSupport) { coordinator.openSupport() }
         AppMenuDivider()
         AppMenuItem(key: .menuQuit, shortcut: "q") { coordinator.quit() }
     }

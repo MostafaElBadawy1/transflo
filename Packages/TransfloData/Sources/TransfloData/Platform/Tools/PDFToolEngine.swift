@@ -32,7 +32,13 @@ public struct PDFToolEngine: ToolEngine {
         progress: @escaping @Sendable (Double) -> Void
     ) async throws(JobError) -> [URL] {
         try await BlockingWork.runCancellable { [self] isCancelled throws(JobError) -> [URL] in
-            if request.tool == .merge { return [try merge(request.items)] }
+            let items: [ToolItem]
+            if case .assemble(let assembly) = request.settings {
+                guard let ordered = assembly.ordered(request.items) else { throw .unsupported }
+                items = ordered
+            } else { items = request.items }
+            try ToolPreflight.pdfs(items, settings: request.settings)
+            if request.tool == .merge { return [try merge(items)] }
             if case let .splitPages(every) = request.settings { return try split(request.items, every: every) }
             var outputs: [URL] = []
             do throws(JobError) {
@@ -52,20 +58,21 @@ public struct PDFToolEngine: ToolEngine {
 
     private func apply(_ tool: ToolKind, settings: ToolSettings, source: URL, to output: URL) throws(JobError) {
         let document = try PDFKitEngine.open(source)
+        if try applyMarkup(tool, settings: settings, document: document, output: output) { return }
         switch (tool, settings) {
         case (.compress, _):
             try compress(document, source: source, to: output)
         case let (.rotate, .rotate(turns, _, _)):
             try rotate(document, turns: turns)
             try write(document, to: output)
-        case (.removeMetadata, _):
-            try write(rebuilt(from: [document]), to: output)
-        case let (.annotate, .annotate(annotations)):
-            PDFPageEditing.annotate(document, with: annotations)
-            try write(document, to: output)
-        case let (.redact, .redact(boxes)):
-            try PDFPageEditing.redact(document, boxes: boxes)
-            try write(document, to: output)
+        case (.removeMetadata, let settings):
+            if case .removeMetadata(let categories) = settings,
+               categories != Set(MetadataCategory.allCases) {
+                document.documentAttributes = (document.documentAttributes ?? [:]).filter {
+                    !categories.contains(MetadataFiltering.category(String(describing: $0.key)))
+                }
+                try write(document, to: output)
+            } else { try write(rebuilt(from: [document]), to: output) }
         case let (.reorganizePages, .pages(order)), let (.extractPages, .pages(order)):
             try write(try PDFPageEditing.pages(order, from: document), to: output)
         case let (.editMetadata, .metadata(values)):
@@ -74,6 +81,28 @@ public struct PDFToolEngine: ToolEngine {
         default:
             throw .unsupported
         }
+    }
+
+    private func applyMarkup(_ tool: ToolKind, settings: ToolSettings, document: PDFDocument, output: URL)
+        throws(JobError) -> Bool {
+        switch (tool, settings) {
+        case let (.annotate, .annotate(annotations)):
+            PDFPageEditing.annotate(document, with: annotations)
+            try write(document, to: output)
+        case let (.annotate, .pageAnnotations(pages)):
+            for (index, marks) in pages {
+                PDFPageEditing.annotate(document, with: marks, pageIndex: index)
+            }
+            try write(document, to: output)
+        case let (.redact, .pageRedactions(pages)):
+            for (index, boxes) in pages { try PDFPageEditing.redact(document, boxes: boxes, pageIndex: index) }
+            try write(document, to: output)
+        case let (.redact, .redact(boxes)):
+            try PDFPageEditing.redact(document, boxes: boxes)
+            try write(document, to: output)
+        default: return false
+        }
+        return true
     }
 
     private func rotate(_ document: PDFDocument, turns: Int) throws(JobError) {

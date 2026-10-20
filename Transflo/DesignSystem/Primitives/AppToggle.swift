@@ -11,5 +11,6 @@ struct AppToggle: View {
             .toggleStyle(.switch)
             .tint(AppColors.accent)
             .labelsHidden()
+            .appFocusRing(Capsule())
     }
 }

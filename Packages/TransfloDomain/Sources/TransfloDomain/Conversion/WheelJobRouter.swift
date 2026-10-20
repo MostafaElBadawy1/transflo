@@ -8,11 +8,18 @@ public struct WheelJobRouter: WheelJobRunning {
     private let conversion: any WheelJobRunning
     private let tools: any WheelJobRunning
     private let actions: any WheelJobRunning
+    private let recipes: (any WheelJobRunning)?
 
-    public init(conversion: any WheelJobRunning, tools: any WheelJobRunning, actions: any WheelJobRunning) {
+    public init(
+        conversion: any WheelJobRunning,
+        tools: any WheelJobRunning,
+        actions: any WheelJobRunning,
+        recipes: (any WheelJobRunning)? = nil
+    ) {
         self.conversion = conversion
         self.tools = tools
         self.actions = actions
+        self.recipes = recipes
     }
 
     public func run(
@@ -21,9 +28,12 @@ public struct WheelJobRouter: WheelJobRunning {
         progress: @escaping @Sendable (Double) -> Void
     ) async throws(JobError) -> [URL] {
         switch option.kind {
-        case .format: try await conversion.run(option, on: items, progress: progress)
-        case .tool: try await tools.run(option, on: items, progress: progress)
-        case .action: try await actions.run(option, on: items, progress: progress)
+        case .format: return try await conversion.run(option, on: items, progress: progress)
+        case .tool: return try await tools.run(option, on: items, progress: progress)
+        case .action: return try await actions.run(option, on: items, progress: progress)
+        case .recipe:
+            guard let recipes else { throw JobError.unsupported }
+            return try await recipes.run(option, on: items, progress: progress)
         }
     }
 }

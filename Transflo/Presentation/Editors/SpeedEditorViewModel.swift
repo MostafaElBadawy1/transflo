@@ -8,9 +8,9 @@ final class SpeedEditorViewModel: ToolEditorModel {
     private(set) var preview: ToolPreview = .empty
     var factor = 2.0
 
-    @ObservationIgnored private let item: URL
+    @ObservationIgnored let item: URL
     @ObservationIgnored private let format: FormatDescriptor?
-    @ObservationIgnored private let previews: any ToolPreviewProviding
+    @ObservationIgnored let previews: any ToolPreviewProviding
 
     init(item: URL, format: FormatDescriptor?, previews: any ToolPreviewProviding) {
         self.item = item
@@ -20,10 +20,13 @@ final class SpeedEditorViewModel: ToolEditorModel {
 
     /// Length after the change, when known.
     var newDuration: Double? {
-        preview.duration.map { $0 / factor }
+        guard factor.isFinite, factor > 0, let duration = preview.duration,
+              duration.isFinite, duration > 0 else { return nil }
+        return duration / factor
     }
 
     var settings: ToolSettings? {
+        guard newDuration != nil else { return nil }
         let rounded = (factor * 100).rounded() / 100
         guard ToolSettings.speedRange.contains(rounded), abs(rounded - 1) > 0.001 else { return nil }
         return .changeSpeed(rounded)

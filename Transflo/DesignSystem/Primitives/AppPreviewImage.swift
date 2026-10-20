@@ -14,7 +14,7 @@ struct AppPreviewImage: View {
                 Image(nsImage: image)
                     .resizable()
                     .interpolation(.high)
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
             } else {
                 ProgressView().controlSize(.small)
             }

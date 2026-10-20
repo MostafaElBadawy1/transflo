@@ -87,7 +87,9 @@ struct MarkupToolTests {
         #expect(PDFDocument(url: reversed[0])?.pageCount == count)
         let one = try await run(.extractPages, [source], .pages([0]))
         #expect(PDFDocument(url: one[0])?.pageCount == 1)
-        await #expect(throws: JobError.nothingFound) { _ = try await run(.extractPages, [source], .pages([99])) }
+        await #expect(throws: JobError.incompatibleSelection) {
+            _ = try await run(.extractPages, [source], .pages([99]))
+        }
         let redacted = try await run(.redact, [source], .redact([.full]))
         #expect(PDFDocument(url: redacted[0])?.page(at: 0)?.string?.contains("Hello") != true)
         let arrow = Annotation(kind: .arrow, points: [UnitPoint(x: 0.1, y: 0.1), UnitPoint(x: 0.5, y: 0.5)],

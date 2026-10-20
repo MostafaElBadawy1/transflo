@@ -17,6 +17,7 @@ struct AppShelfPill: View {
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .appFocusRing(Circle())
         .appGlass(.floating, in: Circle())
         .help(localizer.string(.shelfExpand))
         .accessibilityLabel(localizer.string(.shelfExpand))

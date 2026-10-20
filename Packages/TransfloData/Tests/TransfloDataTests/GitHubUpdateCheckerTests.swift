@@ -33,6 +33,11 @@ struct GitHubUpdateCheckerTests {
         }
     }
 
+    @Test func pointsToTheLatestRelease() {
+        #expect(GitHubUpdateChecker().downloadURL.absoluteString
+            == "https://github.com/Ali-Fayed/transflo/releases/latest")
+    }
+
     private func status(
         _ tag: String,
         current: String = "1.0.0",

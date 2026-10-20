@@ -64,6 +64,11 @@ final class SettingsViewModel {
         state.appearance = appearance
     }
 
+    /// Re-read changes made by onboarding or System Settings without registering anything.
+    func refreshLaunchAtLoginStatus() {
+        state.launchAtLogin = getLaunchAtLoginStatus.execute()
+    }
+
     /// Turns launch-at-login on or off, then re-reads the real status from the system.
     func setLaunchAtLoginEnabled(_ enabled: Bool) {
         do {

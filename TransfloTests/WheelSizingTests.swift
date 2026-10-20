@@ -54,6 +54,13 @@ struct WheelSizingTests {
         #expect(metrics(12).fontSize < metrics(7).fontSize)
     }
 
+    @Test("two or three wide petals center their label in the ring's depth, clear of the hub",
+          arguments: [2, 3])
+    func wide(count: Int) {
+        let middle = (64 + geometry(count).outerRadius - 8) / 2
+        #expect(metrics(count).radius == middle)
+    }
+
     @Test("a lone option centers in the ring's depth")
     func single() {
         #expect(metrics(1).radius == (64 + 150 - 8) / 2)

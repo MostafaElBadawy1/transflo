@@ -9,10 +9,17 @@ final class RedactEditorViewModel: ToolEditorModel {
     static let minimumSide = 0.01
 
     private(set) var preview: ToolPreview = .empty
-    private(set) var boxes: [NormalizedRect] = []
+    var boxes: [NormalizedRect] { history.marks }
     private(set) var draft: NormalizedRect?
     @ObservationIgnored private var anchor: UnitPoint?
     @ObservationIgnored private var isLargeEnough = false
+
+    private(set) var history = PagedMarkHistory<NormalizedRect>()
+    var canUndo: Bool { history.canUndo }
+    var canRedo: Bool { history.canRedo }
+    var selectedPage: Int { history.page }
+    private(set) var pageCount = 1
+    var editedPageCount: Int { history.changesByPage.count }
 
     @ObservationIgnored private let item: URL
     @ObservationIgnored private let format: FormatDescriptor?
@@ -30,15 +37,28 @@ final class RedactEditorViewModel: ToolEditorModel {
     var allBoxes: [NormalizedRect] { draft.map { boxes + [$0] } ?? boxes }
 
     var settings: ToolSettings? {
-        guard preview.thumbnail != nil, !boxes.isEmpty else { return nil }
-        return .redact(boxes)
+        guard preview.thumbnail != nil else { return nil }
+        if isPDF { return history.changesByPage.isEmpty ? nil : .pageRedactions(history.changesByPage) }
+        return boxes.isEmpty ? nil : .redact(boxes)
     }
 
     func load() async {
         preview = await previews.preview(of: item, format: format)
+        pageCount = max(1, preview.pageCount ?? 1)
+    }
+
+    func selectPage(_ index: Int) async {
+        guard isPDF, (0..<pageCount).contains(index), index != selectedPage else { return }
+        history.select(page: index)
+        draft = nil
+        preview = .empty
+        let loaded = await previews.pagePreview(of: item, index: index)
+        guard index == selectedPage, !Task.isCancelled else { return }
+        preview = loaded
     }
 
     func begin(at point: UnitPoint) {
+        guard preview.thumbnail != nil else { return }
         anchor = point
         move(to: point)
     }
@@ -58,14 +78,18 @@ final class RedactEditorViewModel: ToolEditorModel {
             anchor = nil
         }
         guard let draft, isLargeEnough else { return }
-        boxes.append(draft)
+        commit(boxes + [draft])
     }
 
     func undo() {
-        _ = boxes.popLast()
+        history.undo()
+        draft = nil
     }
-
-    func clear() {
-        boxes.removeAll()
+    func redo() {
+        history.redo()
+        draft = nil
     }
+    func clear() { commit([]); draft = nil }
+    func remove(at index: Int) { history.remove(at: index) }
+    private func commit(_ next: [NormalizedRect]) { history.commit(next) }
 }

@@ -21,6 +21,7 @@ struct AppColorSwatches: View {
                         .frame(width: AppDimensions.Editor.swatchSize, height: AppDimensions.Editor.swatchSize)
                 }
                 .buttonStyle(.plain)
+                .appFocusRing(Circle())
                 .accessibilityLabel(localizer.string(swatch.label))
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }

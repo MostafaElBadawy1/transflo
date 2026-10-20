@@ -12,6 +12,10 @@ final class WheelPanelPresenter: WheelPresenting {
         didSet { dropView.onDrop = onDrop }
     }
 
+    var onPromisedDrop: ((WheelPoint, @escaping PromisedFileDelivery) -> Bool)? {
+        didSet { dropView.onPromisedDrop = onPromisedDrop }
+    }
+
     var onKey: ((WheelKeyCommand) -> Void)? {
         didSet { dropView.onKey = onKey }
     }

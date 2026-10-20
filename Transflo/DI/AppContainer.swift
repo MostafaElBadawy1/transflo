@@ -1,3 +1,4 @@
+import AppIntents
 import AppKit
 import Foundation
 import TransfloData
@@ -16,6 +17,9 @@ final class AppContainer {
     private let jobCenter: JobCenter
     private let editors: ToolEditorCoordinator
     private let notifier: UserNotificationPoster
+    private let updateScheduler: AutomaticUpdateScheduler
+    private let watchFolders: WatchFolderCoordinator
+    private let intents: TransfloIntentServices?
     private let shelf: FloatShelfPresenter
     private let keyboard: KeyboardLaunchCoordinator
     private let serviceProvider: FinderServiceProvider
@@ -38,38 +42,38 @@ final class AppContainer {
         let wheelFactory = edition.makeWheelFactory(
             bindings: bindings, localizer: localizer, conversion: conversion, tools: tools, visibility: repository
         )
-        let shelf = FloatShelfPresenter(localizer: localizer)
-        self.shelf = shelf
-        let actions = ActionFactory(localizer: localizer, shelf: shelf, inputPreferences: inputPreferences)
+        self.shelf = FloatShelfPresenter(localizer: localizer)
+        let actions = ActionFactory(localizer: localizer, shelf: self.shelf, inputPreferences: inputPreferences)
         let jobs = JobFactory(localizer: localizer, conversion: conversion.makeRunner(), tools: tools.makeRunner(),
-                              actions: actions.runner, preferences: repository, resultVisibleFor: Self.resultVisibleFor)
-        let wheelViewModel = wheelFactory.makeViewModel()
-        self.localizer = localizer
-        self.appearanceApplier = appearanceApplier
+                              actions: actions.runner, preferences: repository, usage: repository, recipes: repository,
+                              resultVisibleFor: Self.resultVisibleFor, catalog: conversion.catalog)
+        (self.localizer, self.appearanceApplier) = (localizer, appearanceApplier)
         self.startupSettings = settings
-        self.wheelViewModel = wheelViewModel
-        self.jobCenter = jobs.center
-        self.notifier = jobs.notifier
-        let editors = tools.makeEditors(formats: conversion.catalog, localizer: localizer)
+        self.wheelViewModel = wheelFactory.makeViewModel()
+        (self.jobCenter, self.notifier, self.intents) = (jobs.center, jobs.notifier, jobs.intents)
+        self.editors = tools.makeEditors(formats: conversion.catalog, localizer: localizer, preferences: repository)
         let scheduler = edition.makeScheduler(base: jobs.center, hints: jobs.hints, localizer: localizer,
                                               defaults: defaults)
-        self.editors = editors
         self.wheelCoordinator = wheelFactory.makeCoordinator(
-            viewModel: wheelViewModel, scheduler: scheduler, editor: editors, preparer: actions.preparer
+            viewModel: self.wheelViewModel, scheduler: scheduler, editor: self.editors, preparer: actions.preparer
         )
         let keyboard = KeyboardFactory(wheel: wheelCoordinator, hints: jobs.hints)
-        self.keyboard = keyboard.launcher
-        self.serviceProvider = keyboard.serviceProvider
+        (self.keyboard, self.serviceProvider) = (keyboard.launcher, keyboard.serviceProvider)
         self.dragMonitor = Self.makeDragMonitor(bindings: bindings)
         self.inputPreferences = inputPreferences
-        let settingsFactory = Self.makeSettingsFactory(
+        let watch = WatchFolderFactory(edition: edition, conversion: conversion, tools: tools, repository: repository,
+                                       jobs: jobs.center, localizer: localizer, defaults: defaults)
+        var settingsFactory = Self.makeSettingsFactory(
             repository: repository, preferredLanguages: preferredLanguages,
-            languageAppliers: [localizer, suffixes], appearanceApplier: appearanceApplier,
-            wheel: (edition.makeWheelChoices(conversion: conversion, tools: tools), repository)
+            appliers: ([localizer, suffixes], appearanceApplier),
+            wheel: (edition.makeWheelChoices(conversion: conversion, tools: tools), repository),
+            updates: (edition.makeUpdateFactory(defaults: defaults), conversion.catalog)
         )
+        (watchFolders, settingsFactory.makeWatchFolders) = (watch.coordinator, watch.makeViewModel)
+        updateScheduler = settingsFactory.updates.makeScheduler(notifier: jobs.notifier, localizer: localizer)
         usesHotKey = edition.edition.supportsFinderSelection
-        let applier = InputPreferencesApplier(dragMonitor: dragMonitor, wheel: wheelViewModel, keyboard: self.keyboard,
-                                              usesHotKey: usesHotKey)
+        let applier = InputPreferencesApplier(dragMonitor: dragMonitor, wheel: self.wheelViewModel,
+                                              keyboard: self.keyboard, usesHotKey: usesHotKey)
         self.coordinator = edition.makeCoordinator(
             settings: settingsFactory, inputPreferences: inputPreferences, applier: applier, jobs: jobs,
             localizer: localizer
@@ -90,6 +94,14 @@ final class AppContainer {
         languages: any PreferredLanguagesProviding
     ) -> (UserDefaultsSettingsRepository, AppSettings) {
         let repository = UserDefaultsSettingsRepository(defaults: defaults)
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["TRANSFLO_TEST_DEFAULTS_SUITE"]?.hasPrefix("TransfloUITests.") == true,
+           ProcessInfo.processInfo.arguments.contains(LaunchArgument.previewRecipes) {
+            repository.saveRecipes([Recipe(name: "Web photo", steps: [
+                .convert(formatID: "jpg"), .resizeLongEdge(2048), .removeMetadata
+            ]), Recipe(name: "Quick clean", steps: [.compress, .removeMetadata])])
+        }
+        #endif
         InterfaceStyle.shared.apply(repository.loadCustomization() ?? .standard)
         return (repository, LoadSettingsUseCase(repository: repository, preferredLanguages: languages).execute())
     }
@@ -118,19 +130,22 @@ final class AppContainer {
     private static func makeSettingsFactory(
         repository: any SettingsRepository,
         preferredLanguages: any PreferredLanguagesProviding,
-        languageAppliers: [any LanguageApplying],
-        appearanceApplier: any AppearanceApplying,
-        wheel: (choices: ListWheelChoicesUseCase, visibility: any WheelVisibilityRepository)
+        appliers: (language: [any LanguageApplying], appearance: any AppearanceApplying),
+        wheel: (choices: ListWheelChoicesUseCase,
+                visibility: any WheelVisibilityRepository & WheelUsageRepository & RecipeRepository),
+        updates: (factory: UpdateFactory, catalog: ConversionCatalog)
     ) -> SettingsFactory {
         SettingsFactory(
             repository: repository,
             preferredLanguages: preferredLanguages,
             launchAtLogin: SMAppServiceLaunchAtLogin(),
             versionProvider: BundleAppVersionProvider(infoDictionary: Bundle.main.infoDictionary),
-            languageApplier: CompositeLanguageApplier(languageAppliers),
-            appearanceApplier: appearanceApplier,
+            languageApplier: CompositeLanguageApplier(appliers.language),
+            appearanceApplier: appliers.appearance,
             wheelChoices: wheel.choices,
-            wheelVisibility: wheel.visibility
+            wheelVisibility: wheel.visibility,
+            updates: updates.factory, conversionCatalog: updates.catalog,
+            wheelUsage: wheel.visibility, recipes: wheel.visibility
         )
     }
 
@@ -146,10 +161,27 @@ final class AppContainer {
         dragMonitor.start()
     }
 
+    /// Starts the automatic daily update check (it does nothing while the user has it turned off).
+    func startUpdateChecks() {
+        updateScheduler.start()
+    }
+
+    /// Makes Transflo's actions available to Shortcuts, Spotlight and Siri. Call before launch finishes.
+    func registerIntents() {
+        guard let intents else { return }
+        AppDependencyManager.shared.add(dependency: intents)
+    }
+
+    /// Starts watching the folders chosen in Settings › Recipes.
+    func startWatchFolders() {
+        watchFolders.reload()
+    }
+
     /// Starts the no-drag ways in: the global hotkey and the Finder "Open in Transflo" Service.
     func startKeyboardPath() {
         if usesHotKey { keyboard.start(hotKey: inputPreferences.load().hotKey) }
         NSApp.servicesProvider = serviceProvider
+        coordinator.onConvertClipboard = { [keyboard] in keyboard.openClipboard() }
         NSUpdateDynamicServices()
     }
 
@@ -171,7 +203,7 @@ final class AppContainer {
         if ProcessInfo.processInfo.arguments.contains(LaunchArgument.previewItemCount) {
             wheelViewModel.show(kind, options: wheelViewModel.state.options,
                                 summary: DragSummary(itemCount: count, totalBytes: Int64(count) * 1_200_000))
-        } else {
+        } else if kind != .tools {
             wheelViewModel.updatePointer(WheelPoint(x: 70, y: 70))
         }
     }

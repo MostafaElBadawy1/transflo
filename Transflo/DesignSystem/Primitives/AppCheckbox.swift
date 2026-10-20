@@ -37,6 +37,7 @@ private struct AppCheckboxStyle: ToggleStyle {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .appFocusRing(RoundedRectangle(cornerRadius: AppDimensions.Radius.small))
         .accessibilityRepresentation {
             Toggle(isOn: configuration.$isOn) { configuration.label }
                 .toggleStyle(.checkbox)

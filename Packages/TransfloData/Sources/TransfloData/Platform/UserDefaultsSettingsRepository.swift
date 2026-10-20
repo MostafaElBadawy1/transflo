@@ -3,7 +3,8 @@ import TransfloDomain
 
 // @unchecked: `UserDefaults` is documented as thread-safe but is not annotated `Sendable` in the SDK.
 /// `SettingsRepository` backed by `UserDefaults`. These values are not sensitive.
-public struct UserDefaultsSettingsRepository: SettingsRepository, WheelVisibilityRepository, @unchecked Sendable {
+public struct UserDefaultsSettingsRepository: SettingsRepository, WheelVisibilityRepository, WheelUsageRepository,
+    RecipeRepository, WatchFolderRepository, @unchecked Sendable {
     private let defaults: UserDefaults
 
     public init(defaults: UserDefaults) {
@@ -46,7 +47,9 @@ public struct UserDefaultsSettingsRepository: SettingsRepository, WheelVisibilit
     public func loadCompressionGoal() -> CompressionGoal {
         guard let data = defaults.data(forKey: SettingsStorageKey.compressionGoal),
               let goal = try? JSONDecoder().decode(CompressionGoal.self, from: data) else { return .medium }
-        if case .targetBytes(let bytes) = goal, !(100_000...1_000_000_000).contains(bytes) { return .medium }
+        // General now offers presets only; old budgets must not remain hidden defaults.
+        if case .targetBytes = goal { return .medium }
+        if case .percentage = goal { return .medium }
         return goal
     }
 
@@ -72,5 +75,38 @@ public struct UserDefaultsSettingsRepository: SettingsRepository, WheelVisibilit
     public func saveWheelVisibility(_ visibility: WheelVisibility) {
         guard let data = try? JSONEncoder().encode(visibility) else { return }
         defaults.set(data, forKey: SettingsStorageKey.wheelVisibility)
+    }
+
+    public func loadWheelUsage() -> WheelUsage {
+        guard let data = defaults.data(forKey: SettingsStorageKey.wheelUsage),
+              let usage = try? JSONDecoder().decode(WheelUsage.self, from: data) else { return .standard }
+        return usage
+    }
+
+    public func saveWheelUsage(_ usage: WheelUsage) {
+        guard let data = try? JSONEncoder().encode(usage) else { return }
+        defaults.set(data, forKey: SettingsStorageKey.wheelUsage)
+    }
+
+    public func loadRecipes() -> [Recipe] {
+        guard let data = defaults.data(forKey: SettingsStorageKey.recipes),
+              let recipes = try? JSONDecoder().decode([Recipe].self, from: data) else { return [] }
+        return recipes
+    }
+
+    public func saveRecipes(_ recipes: [Recipe]) {
+        guard let data = try? JSONEncoder().encode(recipes) else { return }
+        defaults.set(data, forKey: SettingsStorageKey.recipes)
+    }
+
+    public func loadWatchFolders() -> [WatchFolder] {
+        guard let data = defaults.data(forKey: SettingsStorageKey.watchFolders),
+              let folders = try? JSONDecoder().decode([WatchFolder].self, from: data) else { return [] }
+        return folders
+    }
+
+    public func saveWatchFolders(_ folders: [WatchFolder]) {
+        guard let data = try? JSONEncoder().encode(folders) else { return }
+        defaults.set(data, forKey: SettingsStorageKey.watchFolders)
     }
 }

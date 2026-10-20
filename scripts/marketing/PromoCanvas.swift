@@ -88,25 +88,20 @@ struct PromoCanvas {
 
     /// `image` clipped to a rounded rectangle, with a shadow beneath.
     func roundedImage(_ image: NSImage, in rect: CGRect, radius: CGFloat) {
-        let path = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
-        NSGraphicsContext.saveGraphicsState()
-        shadow(radius: 40, drop: 16).set()
-        PromoPalette.inkBottom.setFill()
-        path.fill()
-        NSGraphicsContext.restoreGraphicsState()
-        NSGraphicsContext.saveGraphicsState()
-        path.addClip()
-        image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true,
-                   hints: [.interpolation: NSImageInterpolation.high])
-        NSGraphicsContext.restoreGraphicsState()
+        clipped(image, in: rect, to: NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius),
+                shadow: shadow(radius: 40, drop: 16))
     }
 
     /// `image` clipped to a circle of `diameter` around `center`, with a shadow beneath.
     func circle(_ image: NSImage, center: CGPoint, diameter: CGFloat) {
         let rect = CGRect(x: center.x - diameter / 2, y: center.y - diameter / 2, width: diameter, height: diameter)
-        let path = NSBezierPath(ovalIn: rect)
+        clipped(image, in: rect, to: NSBezierPath(ovalIn: rect), shadow: shadow(radius: 60, drop: 24))
+    }
+
+    /// Casts `shadow` from `path`'s shape, then draws `image` inside it.
+    private func clipped(_ image: NSImage, in rect: CGRect, to path: NSBezierPath, shadow: NSShadow) {
         NSGraphicsContext.saveGraphicsState()
-        shadow(radius: 60, drop: 24).set()
+        shadow.set()
         PromoPalette.inkBottom.setFill()
         path.fill()
         NSGraphicsContext.restoreGraphicsState()

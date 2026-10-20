@@ -8,20 +8,40 @@ import Vision
 enum VisionImageTools {
     /// The image with everything but its foreground subjects made transparent.
     static func removeBackground(from image: CGImage) throws(JobError) -> CGImage {
+        try removingBackground(from: image, settings: BackgroundRemovalSettings()).image
+    }
+
+    static func removingBackground(from image: CGImage, settings: BackgroundRemovalSettings)
+        throws(JobError) -> (image: CGImage, subjects: [Int]) {
+        guard settings.isValid else { throw .unsupported }
         let request = VNGenerateForegroundInstanceMaskRequest()
         let handler = VNImageRequestHandler(cgImage: image)
-        do {
-            try handler.perform([request])
-        } catch {
-            throw .failed
-        }
+        do { try handler.perform([request]) } catch { throw .failed }
+        if BlockingWork.isCancelled { throw .cancelled }
         guard let observation = request.results?.first, !observation.allInstances.isEmpty else { throw .nothingFound }
-        guard let masked = try? observation.generateMaskedImage(
-            ofInstances: observation.allInstances, from: handler, croppedToInstancesExtent: false
-        ) else { throw .failed }
-        let ciImage = CIImage(cvPixelBuffer: masked)
-        guard let result = CIContext().createCGImage(ciImage, from: ciImage.extent) else { throw .failed }
-        return result
+        let selected = settings.subject.map { IndexSet(integer: $0) } ?? observation.allInstances
+        guard selected.isSubset(of: observation.allInstances),
+              let mask = try? observation.generateScaledMaskForImage(forInstances: selected, from: handler) else {
+            throw .incompatibleSelection
+        }
+        let original = CIImage(cgImage: image)
+        var alpha = CIImage(cvPixelBuffer: mask)
+        if settings.feather > 0 {
+            alpha = alpha.clampedToExtent().applyingFilter("CIGaussianBlur", parameters: [
+                kCIInputRadiusKey: settings.feather * Double(min(image.width, image.height))
+            ]).cropped(to: original.extent)
+        }
+        let backdrop: CIImage
+        if let hex = settings.background {
+            backdrop = CIImage(color: CIColor(cgColor: ImageMarkup.color(hex))).cropped(to: original.extent)
+        } else {
+            backdrop = CIImage(color: .clear).cropped(to: original.extent)
+        }
+        let composed = original.applyingFilter("CIBlendWithMask", parameters: [
+            kCIInputBackgroundImageKey: backdrop, kCIInputMaskImageKey: alpha
+        ])
+        guard let result = CIContext().createCGImage(composed, from: original.extent) else { throw .failed }
+        return (result, Array(observation.allInstances))
     }
 
     /// Every distinct barcode / QR payload in `images`, in reading order.

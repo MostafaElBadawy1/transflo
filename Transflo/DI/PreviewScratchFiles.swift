@@ -1,7 +1,9 @@
 #if DEBUG
 import AppKit
+import CoreImage
 import CoreText
 import ImageIO
+import TransfloData
 import TransfloDomain
 
 /// Scratch inputs for the debug-only preview launch arguments (UI-test screenshots).
@@ -23,11 +25,29 @@ nonisolated enum PreviewScratchFiles {
     /// A PDF for page tools, several images for multi-file tools, one image otherwise.
     static func make(for tool: ToolKind, in folder: URL) -> [URL] {
         switch tool {
+        case .trim, .changeSpeed, .snapshot, .bleep, .split:
+            let video = folder.appendingPathComponent("Sample clip.mp4")
+            writeVideo(to: video)
+            return [video]
+        case .normalize, .channels:
+            let audio = folder.appendingPathComponent("Stereo recording.wav")
+            writeAudio(to: audio)
+            return [audio]
+        case .readCode:
+            let code = folder.appendingPathComponent("Website code.png")
+            writeCode(to: code)
+            return [code]
+        case .merge:
+            return (1...2).map { index in
+                let pdf = folder.appendingPathComponent("Document \(index).pdf")
+                writePDF(to: pdf)
+                return pdf
+            }
         case .reorganizePages, .extractPages:
             let pdf = folder.appendingPathComponent("Quarterly report.pdf")
             writePDF(to: pdf)
             return [pdf]
-        case .collage, .rename:
+        case .collage, .rename, .imagesToPDF:
             return (1...imageCount).map { index in
                 let url = folder.appendingPathComponent("Holiday photo \(index).heic")
                 writeHEIC(to: url)
@@ -38,6 +58,53 @@ nonisolated enum PreviewScratchFiles {
             writeHEIC(to: url)
             return [url]
         }
+    }
+
+    /// A short local test clip gives media editors real timing and frame previews.
+    private static func writeVideo(to url: URL) {
+        guard let binary = FFmpegEngine.bundledBinary(in: .main) else { return }
+        let process = Process()
+        process.executableURL = binary
+        let source = ProcessInfo.processInfo.arguments.contains(LaunchArgument.screenshotCapture)
+            ? marketingVideoSource : "testsrc2=size=640x360:rate=24"
+        process.arguments = ["-y", "-f", "lavfi", "-i", source,
+                             "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100", "-t", "12",
+                             "-c:v", "mpeg4", "-pix_fmt", "yuv420p", "-c:a", "aac", url.path]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        do { try process.run(); process.waitUntilExit() } catch { return }
+    }
+
+    /// An original animated landscape, rather than color bars, for promotional captures.
+    private static var marketingVideoSource: String {
+        let sun = "lt(hypot(X-440,Y-100),36)"
+        let hill = "gt(Y,230+40*sin(X/140+T/3))"
+        return "color=c=0xb7e0d6:s=640x360:r=24,geq="
+            + "r='if(\(sun),242,if(\(hill),31,183))':"
+            + "g='if(\(sun),193,if(\(hill),92,224))':"
+            + "b='if(\(sun),78,if(\(hill),79,214))'"
+    }
+
+    private static func writeAudio(to url: URL) {
+        guard let binary = FFmpegEngine.bundledBinary(in: .main) else { return }
+        let process = Process()
+        process.executableURL = binary
+        process.arguments = ["-y", "-f", "lavfi", "-i",
+                             "aevalsrc=0.1*sin(2*PI*440*t)|0.1*sin(2*PI*880*t):s=48000:d=3", url.path]
+        process.standardOutput = FileHandle.nullDevice; process.standardError = FileHandle.nullDevice
+        do { try process.run(); process.waitUntilExit() } catch { return }
+    }
+
+    private static func writeCode(to url: URL) {
+        guard let filter = CIFilter(name: "CIQRCodeGenerator") else { return }
+        filter.setValue(Data("https://transfloformac.ali-fayed.com/".utf8), forKey: "inputMessage")
+        guard let code = filter.outputImage?.transformed(by: CGAffineTransform(scaleX: 12, y: 12)) else { return }
+        let padded = code.composited(over: CIImage(color: .white).cropped(to: code.extent.insetBy(dx: -48, dy: -48)))
+        guard let image = CIContext().createCGImage(padded, from: padded.extent),
+              let destination = CGImageDestinationCreateWithURL(url as CFURL, "public.png" as CFString, 1, nil)
+        else { return }
+        CGImageDestinationAddImage(destination, image, nil)
+        CGImageDestinationFinalize(destination)
     }
 
     /// A 640×480 picture: a teal disc on a transparent background.

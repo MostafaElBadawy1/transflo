@@ -19,6 +19,7 @@ final class WheelCoordinator: KeyboardWheelOpening {
 
     private var items: [URL] = []
     private var openPoint: WheelPoint?
+    private var keepsOpenAfterDrag = false
     private var pendingDismiss: Task<Void, Never>?
     private var listener: Task<Void, Never>?
 
@@ -44,6 +45,9 @@ final class WheelCoordinator: KeyboardWheelOpening {
         self.summaryProvider = summaryProvider
         presenter.onHover = { [weak viewModel] offset in viewModel?.updatePointer(offset) ?? false }
         presenter.onDrop = { [weak self] offset in self?.handleDrop(at: offset) ?? false }
+        presenter.onPromisedDrop = { [weak self] offset, deliver in
+            self?.handlePromisedDrop(at: offset, deliver: deliver) ?? false
+        }
         presenter.onClick = { [weak self] offset in self?.handleClick(at: offset) ?? false }
         presenter.onKey = { [weak self] command in self?.handleKey(command) }
         presenter.onPointer = { [weak viewModel] offset in viewModel?.highlightWedge(at: offset) }
@@ -101,7 +105,7 @@ final class WheelCoordinator: KeyboardWheelOpening {
         case let .wheelRequested(kind, point):
             open(kind, at: point)
         case .ended:
-            scheduleDismiss()
+            if !keepsOpenAfterDrag { scheduleDismiss() }
         }
     }
 
@@ -109,8 +113,8 @@ final class WheelCoordinator: KeyboardWheelOpening {
     @discardableResult
     func handleClick(at offset: WheelPoint) -> Bool {
         guard openPoint != nil else { return false }
-        if viewModel.isMore(at: offset) {
-            viewModel.turnPage()
+        if viewModel.navigate(at: offset) {
+            pendingDismiss?.cancel()
             return true
         }
         return handleDrop(at: offset)
@@ -119,6 +123,12 @@ final class WheelCoordinator: KeyboardWheelOpening {
     /// A drop on a paging control is not a file operation.
     @discardableResult
     func handleDrop(at offset: WheelPoint) -> Bool {
+        if let point = openPoint, viewModel.navigate(at: offset) {
+            keepsOpenAfterDrag = true
+            pendingDismiss?.cancel()
+            presenter.showInteractive(at: point)
+            return true
+        }
         guard let point = openPoint, let option = viewModel.option(at: offset) else {
             close()
             return false
@@ -126,6 +136,38 @@ final class WheelCoordinator: KeyboardWheelOpening {
         let items = self.items
         close()
         dispatch(option, items: items, near: point)
+        return true
+    }
+
+    /// A drop of promised files: the wheel closes at once, and the job starts on the files the source
+    /// app writes into Downloads (nothing happens if none arrive).
+    @discardableResult
+    func handlePromisedDrop(at offset: WheelPoint, deliver: @escaping PromisedFileDelivery) -> Bool {
+        guard let point = openPoint, let kind = viewModel.state.kind else { close(); return false }
+        if viewModel.navigate(at: offset) {
+            let group = viewModel.state.group, page = viewModel.state.page
+            close()
+            deliver { [weak self] items in
+                guard let self, openForKeyboard(items: items, at: point) else { return }
+                open(kind, at: point)
+                if let group { viewModel.openGroup(group) }
+                for _ in 0..<page { viewModel.turnPage() }
+                keepsOpenAfterDrag = true
+            }
+            return true
+        }
+        guard let option = viewModel.option(at: offset) else {
+            close()
+            return false
+        }
+        close()
+        deliver { [weak self] items in
+            guard let self, !items.isEmpty,
+                  resolveOptions.execute(wheel: kind, items: items).contains(where: { $0.kind == option.kind }) else {
+                return
+            }
+            dispatch(option, items: items, near: point)
+        }
         return true
     }
 
@@ -167,6 +209,7 @@ final class WheelCoordinator: KeyboardWheelOpening {
     }
 
     private func close() {
+        keepsOpenAfterDrag = false
         pendingDismiss?.cancel()
         pendingDismiss = nil
         guard openPoint != nil else { return }
